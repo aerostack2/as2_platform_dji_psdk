@@ -1,4 +1,4 @@
-# as2_platform_template
+# as2_platform_dji_psdk
 
 Template for Aerostack2 Nodes
 
@@ -9,24 +9,24 @@ For documentation, use [Doxygen](https://www.doxygen.nl/index.html). The documen
     ```
     sudo apt install doxygen
     ```
-2. Run doxygen in the root folder `as2_platform_template/` by:
+2. Run doxygen in the root folder `as2_platform_dji_psdk/` by:
     ```
     doxygen Doxyfile
     ```
-3. Open the documentation in by opening `as2_platform_template/doxygen/html/index.html`
+3. Open the documentation in by opening `as2_platform_dji_psdk/doxygen/html/index.html`
 
 ## Building the package
 
 Go to the root folder of the workspace and run:
 ```
-colcon build --packages-select as2_platform_template
+colcon build --packages-select as2_platform_dji_psdk
 ```
 
 ## Running colcon test
 
 Run colcon test in by:
 ```
-colcon test --packages-select as2_platform_template
+colcon test --packages-select as2_platform_dji_psdk
 ```
    
 Optional, add verbosity with `--event-handlers console_direct`

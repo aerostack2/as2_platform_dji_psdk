@@ -1,4 +1,4 @@
-""" Launch as2_platform_template node"""
+""" Launch as2_platform_dji_psdk node"""
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch.actions import DeclareLaunchArgument
@@ -10,7 +10,7 @@ def generate_launch_description():
     """Entrypoint"""
 
     platform_config_file = PathJoinSubstitution([
-        FindPackageShare('as2_platform_template'),
+        FindPackageShare('as2_platform_dji_psdk'),
         'config', 'platform_config_file.yaml'
     ])
 
@@ -31,9 +31,9 @@ def generate_launch_description():
                               default_value=control_modes,
                               description='Platform control modes file'),
         Node(
-            package="as2_platform_template",
-            executable="as2_platform_template_node",
-            name="as2_platform_template",
+            package="as2_platform_dji_psdk",
+            executable="as2_platform_dji_psdk_node",
+            name="as2_platform_dji_psdk",
             namespace=LaunchConfiguration('namespace'),
             output="screen",
             emulate_tty=True,

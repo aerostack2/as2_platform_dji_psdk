@@ -1,20 +1,20 @@
 // "Copyright [year] <Copyright Owner>"
 
-#ifndef AS2_PLATFORM_TEMPLATE_HPP_
-#define AS2_PLATFORM_TEMPLATE_HPP_
+#ifndef AS2_PLATFORM_DJI_PSDK_HPP_
+#define AS2_PLATFORM_DJI_PSDK_HPP_
 
 #include <rclcpp/rclcpp.hpp>
 #include "as2_core/aerial_platform.hpp"
 #include "as2_msgs/msg/control_mode.hpp"
 
-namespace as2_platform_template {
+namespace as2_platform_dji_psdk {
 
-class As2PlatformTemplate : public as2::AerialPlatform {
+class DJIMatricePSDKPlatform : public as2::AerialPlatform {
   using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
 public:
-  As2PlatformTemplate(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
-  virtual ~As2PlatformTemplate() = default;
+  DJIMatricePSDKPlatform(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
+  virtual ~DJIMatricePSDKPlatform() = default;
 
 public:
   void configureSensors() override;
@@ -26,8 +26,8 @@ public:
   void ownKillSwitch() override;
   bool ownTakeoff() override;
   bool ownLand() override;
-};  // class As2PlatformTemplate
+};  // class DJIMatricePSDKPlatform
 
-}  // namespace as2_platform_template
+}  // namespace as2_platform_dji_psdk
 
-#endif  // AS2_PLATFORM_TEMPLATE_HPP_
+#endif  // AS2_PLATFORM_DJI_PSDK_HPP_

@@ -1,13 +1,13 @@
 // "Copyright [year] <Copyright Owner>"
 
 #include "as2_core/core_functions.hpp"
-#include "as2_platform_template.hpp"
+#include "as2_platform_dji_psdk.hpp"
 
-using namespace as2_platform_template;
+using namespace as2_platform_dji_psdk;
 
 int main(int argc, char* argv[]) {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<As2PlatformTemplate>();
+  auto node = std::make_shared<DJIMatricePSDKPlatform>();
 
   node->preset_loop_frequency(50);  // Node frequency for run and
                                     // callbacks
@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
   as2::spinLoop(node);
 
   // Node with run
-  // as2::spinLoop(node,std::bind(&As2PlatformTemplate::run, node));
+  // as2::spinLoop(node,std::bind(&DJIMatricePSDKPlatform::run, node));
 
   rclcpp::shutdown();
   return 0;
