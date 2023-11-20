@@ -7,6 +7,8 @@
 #include "as2_core/aerial_platform.hpp"
 #include "as2_msgs/msg/control_mode.hpp"
 
+#include "psdk_interfaces/msg/gimbal_rotation.hpp"
+
 namespace as2_platform_dji_psdk {
 
 class DJIMatricePSDKPlatform : public as2::AerialPlatform {
@@ -26,6 +28,9 @@ public:
   void ownKillSwitch() override;
   bool ownTakeoff() override;
   bool ownLand() override;
+
+private:
+  psdk_interfaces::msg::GimbalRotation gimbal_rotation_msg_;
 };  // class DJIMatricePSDKPlatform
 
 }  // namespace as2_platform_dji_psdk

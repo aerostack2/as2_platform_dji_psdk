@@ -22,6 +22,7 @@ set(PROJECT_DEPENDENCIES
   as2_core
   as2_msgs
   std_msgs
+  psdk_interfaces
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})

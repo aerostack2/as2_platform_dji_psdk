@@ -2,6 +2,10 @@
 
 Template for Aerostack2 Nodes
 
+## Dependencies
+
+Follow the [psdk_ros2 installation guide](https://umdlife.github.io/psdk_ros2/documentation/GettingStarted.html)
+
 ## API
 For documentation, use [Doxygen](https://www.doxygen.nl/index.html). The documentation files have to be built locally:
 
