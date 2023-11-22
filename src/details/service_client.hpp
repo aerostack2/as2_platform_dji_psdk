@@ -32,7 +32,6 @@
 
 #include <memory>
 #include <chrono>
-using namespace std::chrono_literals;
 
 namespace as2_platform_dji_psdk
 {
@@ -40,14 +39,14 @@ namespace as2_platform_dji_psdk
 template<typename ServiceDefinition>
 class ServiceClient
 {
-  using Msg_t = typename ServiceDefinition::Msg_t;
+  typedef typename ServiceDefinition::Msg_t Msg_t;
 
 public:
   void init(rclcpp::Node * node) {client = node->create_client<Msg_t>(ServiceDefinition::name);}
 
   bool wait_for_service()
   {
-    while (!client->wait_for_service(1s)) {
+    while (!client->wait_for_service(std::chrono::seconds(1))) {
       if (!rclcpp::ok()) {
         RCLCPP_ERROR(
           rclcpp::get_logger("rclcpp"),
