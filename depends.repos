@@ -1,0 +1,9 @@
+repositories:
+  ThirdParties/psdk_ros2:
+    type: git
+    url: https://github.com/umdlife/psdk_ros2.git
+    version: main
+  ThirdParties/Payload-SDK:
+    type: git
+    url: https://github.com/dji-sdk/Payload-SDK.git
+    version: master

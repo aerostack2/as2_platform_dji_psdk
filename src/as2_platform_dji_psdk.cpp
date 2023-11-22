@@ -27,63 +27,23 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 
+#include "as2_core/core_functions.hpp"
 #include "as2_platform_dji_psdk.hpp"
 
-namespace as2_platform_dji_psdk
+int main(int argc, char * argv[])
 {
+  rclcpp::init(argc, argv);
+  auto node = std::make_shared<as2_platform_dji_psdk::DJIMatricePSDKPlatform>();
 
-DJIMatricePSDKPlatform::DJIMatricePSDKPlatform(const rclcpp::NodeOptions & options)
-: as2::AerialPlatform(options) {}
+  node->preset_loop_frequency(50);  // Node frequency for run and
+                                    // callbacks
 
-void DJIMatricePSDKPlatform::configureSensors()
-{
-  // Configure sensors here
+  // Node with only callbacks
+  as2::spinLoop(node);
+
+  // Node with run
+  // as2::spinLoop(node,std::bind(&DJIMatricePSDKPlatform::run, node));
+
+  rclcpp::shutdown();
+  return 0;
 }
-
-bool DJIMatricePSDKPlatform::ownSetArmingState(bool state)
-{
-  // Set arming state here
-  return false;
-}
-
-bool DJIMatricePSDKPlatform::ownSetOffboardControl(bool offboard)
-{
-  // Set offboard control here
-  return false;
-}
-
-bool DJIMatricePSDKPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg)
-{
-  // Set platform control mode here
-  return false;
-}
-
-bool DJIMatricePSDKPlatform::ownSendCommand()
-{
-  // Send command to platform here
-  return false;
-}
-
-void DJIMatricePSDKPlatform::ownStopPlatform()
-{
-  // Send hover to platform here
-}
-
-void DJIMatricePSDKPlatform::ownKillSwitch()
-{
-  // Send kill switch to platform here
-}
-
-bool DJIMatricePSDKPlatform::ownTakeoff()
-{
-  // Send takeoff to platform here
-  return false;
-}
-
-bool DJIMatricePSDKPlatform::ownLand()
-{
-  // Send land to platform here
-  return false;
-}
-
-}  // namespace as2_platform_dji_psdk

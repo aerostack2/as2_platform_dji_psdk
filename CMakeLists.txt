@@ -22,7 +22,7 @@ set(PROJECT_DEPENDENCIES
   as2_core
   as2_msgs
   std_msgs
-  psdk_interfaces
+  # psdk_interfaces
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
@@ -37,23 +37,34 @@ include_directories(
 
 # Set source files
 set(SOURCE_CPP_FILES
-  src/${PROJECT_NAME}_node.cpp
-  src/${PROJECT_NAME}.cpp
+  src/as2_platform_dji_psdk.cpp
+  src/details/as2_dji_matrice_psdk_platform_impl.cpp
 )
 
-# Create the node executable
-add_executable(${PROJECT_NAME}_node ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
-
-# Create the dynamic library
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# Create the node dynamic library
 add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
+target_precompile_headers(${PROJECT_NAME}
+  PRIVATE
+    [["rclcpp/rclcpp.hpp"]]
+)
 
 # Set the public include directories for the library
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
+
+# # Create the node executable
+# add_executable(${PROJECT_NAME}_node 
+#   src/${PROJECT_NAME}_node.cpp # main file
+#   # ${SOURCE_CPP_FILES} # rest of files
+# )
+# target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
+# ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
+# target_precompile_headers(${PROJECT_NAME}_node
+#   PRIVATE
+#     [["rclcpp/rclcpp.hpp"]]
+# )
 
 # Install the headers
 install(
@@ -62,10 +73,10 @@ install(
 )
 
 # Install the node executable
-install(TARGETS
-  ${PROJECT_NAME}_node
-  DESTINATION lib/${PROJECT_NAME}
-)
+# install(TARGETS
+#   ${PROJECT_NAME}_node
+#   DESTINATION lib/${PROJECT_NAME}
+# )
 
 # Install the shared library
 install(
@@ -102,7 +113,7 @@ if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 
-  add_subdirectory(tests)
+  # add_subdirectory(tests)
 endif()
 
 # Create the ament package

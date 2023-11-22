@@ -34,15 +34,13 @@
 #include "as2_core/aerial_platform.hpp"
 #include "as2_msgs/msg/control_mode.hpp"
 
-#include "psdk_interfaces/msg/gimbal_rotation.hpp"
-
 namespace as2_platform_dji_psdk
 {
 
+class DJIMatricePSDKPlatform_impl;
+
 class DJIMatricePSDKPlatform : public as2::AerialPlatform
 {
-  using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
-
 public:
   explicit DJIMatricePSDKPlatform(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   virtual ~DJIMatricePSDKPlatform() = default;
@@ -59,7 +57,7 @@ public:
   bool ownLand() override;
 
 private:
-  psdk_interfaces::msg::GimbalRotation gimbal_rotation_msg_;
+  std::shared_ptr<DJIMatricePSDKPlatform_impl> _impl;
 };  // class DJIMatricePSDKPlatform
 
 }  // namespace as2_platform_dji_psdk
