@@ -1,7 +1,7 @@
 #include "as2_dji_matrice_psdk_platform_impl.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-namespace as2::as2_psdk
+namespace as2_platform_dji_psdk
 {
 
 DJIMatricePSDKPlatform_impl::DJIMatricePSDKPlatform_impl() {}
@@ -12,4 +12,4 @@ void DJIMatricePSDKPlatform_impl::init(rclcpp::Node * node)
   setLocalPositionService.init(node);
 }
 
-}  // namespace as2::as2_psdk
+}  // namespace as2_platform_dji_psdk

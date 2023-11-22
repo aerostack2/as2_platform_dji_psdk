@@ -54,17 +54,17 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-# # Create the node executable
-# add_executable(${PROJECT_NAME}_node 
-#   src/${PROJECT_NAME}_node.cpp # main file
-#   # ${SOURCE_CPP_FILES} # rest of files
-# )
-# target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
-# ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
-# target_precompile_headers(${PROJECT_NAME}_node
-#   PRIVATE
-#     [["rclcpp/rclcpp.hpp"]]
-# )
+# Create the node executable
+add_executable(${PROJECT_NAME}_node 
+  src/${PROJECT_NAME}_node.cpp # main file
+  # ${SOURCE_CPP_FILES} # rest of files
+)
+target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
+ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
+target_precompile_headers(${PROJECT_NAME}_node
+  PRIVATE
+    [["rclcpp/rclcpp.hpp"]]
+)
 
 # Install the headers
 install(
