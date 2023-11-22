@@ -27,8 +27,8 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 
-#ifndef AS2_OUTPUT_HPP_10348241798
-#define AS2_OUTPUT_HPP_10348241798
+#ifndef DETAILS__OUTPUT_HPP_
+#define DETAILS__OUTPUT_HPP_
 
 namespace as2_platform_dji_psdk
 {
@@ -56,4 +56,4 @@ protected:
 
 }  // namespace as2_platform_dji_psdk
 
-#endif
+#endif  // DETAILS__OUTPUT_HPP_

@@ -2,9 +2,9 @@
 
 echo "This script should executed either at workspace/src dir or at package dir"
 
-echo "Getting ament_uncrustify config file"
-wget https://raw.githubusercontent.com/ament/ament_lint/rolling/ament_uncrustify/ament_uncrustify/configuration/ament_code_style.cfg
-mv ament_code_style.cfg uncrustify.cfg
+# echo "Getting ament_uncrustify config file"
+# wget https://raw.githubusercontent.com/ament/ament_lint/rolling/ament_uncrustify/ament_uncrustify/configuration/ament_code_style.cfg
+# mv ament_code_style.cfg uncrustify.cfg
 
 # Check working dir
 WORKINGDIR=$(pwd)
