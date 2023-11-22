@@ -4,8 +4,13 @@
   <name>as2_platform_dji_psdk</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
+  
   <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
+
   <license>BDS-3</license>
+
+  <author email="r.psegui@upm.es">Rafael Perez-Segui</author>
+  <author email="santiago.tapia@upm.es">santiago Tapia-Fernandez</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
@@ -18,12 +23,9 @@
   <depend>psdk_interfaces</depend>
 
   <!-- linting test dependencies -->
-  <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
-  <test_depend>ament_cmake_cppcheck</test_depend>
-  <test_depend>ament_cmake_cpplint</test_depend>
+  <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_cmake_gtest</test_depend>
-  <test_depend>ament_cmake_clang_format</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

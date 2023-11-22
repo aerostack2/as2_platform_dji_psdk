@@ -99,11 +99,8 @@ install(DIRECTORY
 
 # Build tests if testing is enabled
 if(BUILD_TESTING)
-  find_package(ament_cmake_cppcheck REQUIRED)
-  ament_cppcheck(src/ include/ tests/)
-
-  find_package(ament_cmake_clang_format REQUIRED)
-  ament_clang_format(src/ include/ tests/ --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
 
   add_subdirectory(tests)
 endif()
