@@ -1,4 +1,3 @@
-// Copyright 2023 Universidad Politécnica de Madrid
 
 #ifndef DETAILS__SERVICE_CLIENT_HPP_
 #define DETAILS__SERVICE_CLIENT_HPP_

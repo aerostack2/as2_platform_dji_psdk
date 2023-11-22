@@ -1,4 +1,3 @@
-// Copyright 2023 Universidad Politécnica de Madrid
 
 #include "as2_dji_matrice_psdk_platform_impl.hpp"
 #include "rclcpp/rclcpp.hpp"
