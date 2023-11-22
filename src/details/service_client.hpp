@@ -1,6 +1,9 @@
-#ifndef AS2_PSDK_SERVICE_CLIENT_HPP_1248918249H9HRQ92837
-#define AS2_PSDK_SERVICE_CLIENT_HPP_1248918249H9HRQ92837
+// Copyright 2023 Universidad Politécnica de Madrid
 
+#ifndef DETAILS__SERVICE_CLIENT_HPP_
+#define DETAILS__SERVICE_CLIENT_HPP_
+
+#include <memory>
 #include <chrono>
 using namespace std::chrono_literals;
 
@@ -63,4 +66,4 @@ public:
 
 }  // namespace as2_platform_dji_psdk
 
-#endif
+#endif  // DETAILS__SERVICE_CLIENT_HPP_

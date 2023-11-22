@@ -1,6 +1,9 @@
-#ifndef AS2_NODE_AS2_PSDK_NODE_HPP_IMPL_15980375293057295U9
-#define AS2_NODE_AS2_PSDK_NODE_HPP_IMPL_15980375293057295U9
+// Copyright 2023 santiago.tapia@upm.es UPM
 
+#ifndef DETAILS__AS2_DJI_MATRICE_PSDK_PLATFORM_IMPL_HPP_
+#define DETAILS__AS2_DJI_MATRICE_PSDK_PLATFORM_IMPL_HPP_
+
+#include <string>
 #include "rclcpp/rclcpp.hpp"
 #include "output.hpp"
 #include "sensor_msgs/msg/joy.hpp"
@@ -16,7 +19,7 @@ struct VelocityCommand
 {
   using Msg_t = sensor_msgs::msg::Joy;
   inline static std::string name = "/psdk_ros2/flight_control_setpoint_ENUposition_yaw";
-  // TODO: Check the actual command name
+  // TODO(stapia): Check the actual command name
 };
 
 // Service to set initial reference should be called before any control command
@@ -41,4 +44,4 @@ public:
 
 }  // namespace as2_platform_dji_psdk
 
-#endif
+#endif  // DETAILS__AS2_DJI_MATRICE_PSDK_PLATFORM_IMPL_HPP_

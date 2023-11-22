@@ -30,6 +30,7 @@
 #ifndef AS2_PLATFORM_DJI_PSDK__AS2_PLATFORM_DJI_PSDK_HPP_
 #define AS2_PLATFORM_DJI_PSDK__AS2_PLATFORM_DJI_PSDK_HPP_
 
+#include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include "as2_core/aerial_platform.hpp"
 #include "as2_msgs/msg/control_mode.hpp"

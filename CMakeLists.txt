@@ -55,7 +55,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   $<INSTALL_INTERFACE:include>)
 
 # Create the node executable
-add_executable(${PROJECT_NAME}_node 
+add_executable(${PROJECT_NAME}_node
   src/${PROJECT_NAME}_node.cpp # main file
   # ${SOURCE_CPP_FILES} # rest of files
 )

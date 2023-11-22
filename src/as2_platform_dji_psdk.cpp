@@ -1,3 +1,5 @@
+// Copyright 2023 Universidad Politécnica de Madrid
+
 #include "as2_platform_dji_psdk.hpp"
 #include "details/as2_dji_matrice_psdk_platform_impl.hpp"
 
@@ -11,7 +13,7 @@ void DJIMatricePSDKPlatform::configureSensors()
 {
   _impl->init(this);
   if (!_impl->setLocalPositionService.wait_for_service()) {
-    // TODO: Since waiting is cancelled, is it neccesary any further action?
+    // TODO(cvar): Since waiting is cancelled, is it neccesary any further action?
     RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. Exiting.");
   }
 }
@@ -36,7 +38,7 @@ bool DJIMatricePSDKPlatform::ownSetPlatformControlMode(const as2_msgs::msg::Cont
 
 bool DJIMatricePSDKPlatform::ownSendCommand()
 {
-  // TODO: Look for the service to set reference and get control authority
+  // TODO(stapia): Look for the service to set reference and get control authority
   if (platform_info_msg_.current_control_mode.control_mode == as2_msgs::msg::ControlMode::HOVER) {
     // send all zeros
     _impl->velocityCommand->axes[0] = 0.0f;  // x(m)
