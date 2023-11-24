@@ -38,11 +38,7 @@ int main(int argc, char * argv[])
   node->preset_loop_frequency(50);  // Node frequency for run and
                                     // callbacks
 
-  // Node with only callbacks
-  as2::spinLoop(node);
-
-  // Node with run
-  // as2::spinLoop(node,std::bind(&DJIMatricePSDKPlatform::run, node));
+  rclcpp::spin(node);
 
   rclcpp::shutdown();
   return 0;

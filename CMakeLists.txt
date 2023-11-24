@@ -114,7 +114,9 @@ if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 
-  add_subdirectory(tests)
+  # TODO(cvar): We need a mock of the psdk_ros2 package to run automatic tests 
+  # Disable tests 
+  # add_subdirectory(tests)
 endif()
 
 # Create the ament package

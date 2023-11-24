@@ -36,6 +36,7 @@
 #include "sensor_msgs/msg/joy.hpp"
 #include "service_client.hpp"
 #include "std_srvs/srv/trigger.hpp"
+#include "timer_with_rate.hpp"
 
 // #include "psdk_interfaces/msg/gimbal_rotation.hpp"
 
@@ -56,15 +57,23 @@ struct SetLocalPositionService
   inline static std::string name = "/psdk_ros2/set_local_position_ref";
 };
 
-class DJIMatricePSDKPlatform_impl
+struct ObtainCtrlAuthorityService
+{
+  using Msg_t = std_srvs::srv::Trigger;
+  inline static std::string name = "psdk_ros2/obtain_ctrl_authority";
+};
+
+class DJIMatricePSDKPlatform_impl : public TimerWithRate
 {
 public:
   Output<VelocityCommand> velocityCommand;
   ServiceClient<SetLocalPositionService> setLocalPositionService;
+  ServiceClient<ObtainCtrlAuthorityService> obtainCtrlAuthorityService;
 
 public:
   DJIMatricePSDKPlatform_impl();
   void init(rclcpp::Node *);
+  virtual void timer_tick() override; // From i_TimerTick -< TimerWithRate
 
   // psdk_interfaces::msg::GimbalRotation gimbal_rotation_msg_;
 };

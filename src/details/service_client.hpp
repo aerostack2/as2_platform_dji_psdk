@@ -39,10 +39,14 @@ namespace as2_platform_dji_psdk
 template<typename ServiceDefinition>
 class ServiceClient
 {
+public:
   typedef typename ServiceDefinition::Msg_t Msg_t;
 
-public:
-  void init(rclcpp::Node * node) {client = node->create_client<Msg_t>(ServiceDefinition::name);}
+  void init(rclcpp::Node * node)
+  {
+    node_ = node;
+    client = node->create_client<Msg_t>(ServiceDefinition::name);
+  }
 
   bool wait_for_service()
   {
@@ -50,7 +54,8 @@ public:
       if (!rclcpp::ok()) {
         RCLCPP_ERROR(
           rclcpp::get_logger("rclcpp"),
-          "Interrupted while waiting for the service. Exiting.");
+          "Interrupted while waiting for the service `%s'. Exiting.",
+          ServiceDefinition::name.c_str());
         return false;
       }
       RCLCPP_INFO(
@@ -62,32 +67,30 @@ public:
   }
 
   using ServiceResponseFuture = typename rclcpp::Client<Msg_t>::SharedFutureWithRequest;
+  ServiceResponseFuture future_;
 
   void response_cb(ServiceResponseFuture future)
   {
-    auto request_response_pair = future.get();
-    RCLCPP_INFO(
-      this->get_logger(), "Result of %d is %d (%s)",
-      (int)request_response_pair.first->data, (int)request_response_pair.second->success,
-      request_response_pair.second->message.c_str());
+    RCLCPP_DEBUG(
+      node_->get_logger(), "Response of service `%s' received", ServiceDefinition::name);
+    future_ = future;
   }
 
   using Request_t = typename Msg_t::Request;
   void callAsyncServer(std::shared_ptr<Request_t> request)
   {
+    // TODO(stapia): Reset response:
+    // future_.reset();
+    // Clear eventual pending requests
     client->prune_pending_requests();
     auto callback = [this](ServiceResponseFuture future) {
-        auto request_response_pair = future.get();
-        RCLCPP_INFO(
-          this->get_logger(), "Result of %d is %d (%s)",
-          (int)request_response_pair.first->data,
-          (int)request_response_pair.second->success,
-          request_response_pair.second->message.c_str());
+        this->response_cb(future);
       };
     auto future_id = client->async_send_request(request, callback);
   }
   using ClientPtr_t = typename rclcpp::Client<Msg_t>::SharedPtr;
   ClientPtr_t client;
+  rclcpp::Node * node_;
 };
 
 }  // namespace as2_platform_dji_psdk

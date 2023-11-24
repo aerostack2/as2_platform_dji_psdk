@@ -39,17 +39,19 @@ DJIMatricePSDKPlatform::DJIMatricePSDKPlatform(const rclcpp::NodeOptions & optio
 void DJIMatricePSDKPlatform::configureSensors()
 {
   _impl->init(this);
-  // TODO(stapia) automatic test fails due to timeout because the service is unavailable
-  // if (!_impl->setLocalPositionService.wait_for_service()) {
-  //   // TODO(cvar): Since waiting is cancelled, is it neccesary any further action?
-  //   RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. Exiting.");
-  // }
+  // TODO(stapia) automatic test will fail due to timeout because the service is unavailable
+  if (!_impl->setLocalPositionService.wait_for_service()) {
+    // TODO(cvar): Since waiting is cancelled, is it neccesary any further action?
+    RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. Exiting.");
+  }
 }
 
 bool DJIMatricePSDKPlatform::ownSetArmingState(bool state)
 {
-  // Set arming state here
-  return false;
+  // Set Local Position at the begining of flight
+  auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+  _impl->setLocalPositionService.callAsyncServer(request);
+  return true;
 }
 
 bool DJIMatricePSDKPlatform::ownSetOffboardControl(bool offboard)
@@ -61,12 +63,13 @@ bool DJIMatricePSDKPlatform::ownSetOffboardControl(bool offboard)
 bool DJIMatricePSDKPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg)
 {
   // Set platform control mode here
-  return false;
+  auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+  _impl->obtainCtrlAuthorityService.callAsyncServer(request);
+  return true;
 }
 
 bool DJIMatricePSDKPlatform::ownSendCommand()
 {
-  // TODO(stapia): Look for the service to set reference and get control authority
   if (platform_info_msg_.current_control_mode.control_mode == as2_msgs::msg::ControlMode::HOVER) {
     // send all zeros
     _impl->velocityCommand->axes[0] = 0.0f;  // x(m)

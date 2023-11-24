@@ -37,8 +37,15 @@ DJIMatricePSDKPlatform_impl::DJIMatricePSDKPlatform_impl() {}
 
 void DJIMatricePSDKPlatform_impl::init(rclcpp::Node * node)
 {
+  TimerWithRate::init(node);
   velocityCommand.init(node);
   setLocalPositionService.init(node);
+  obtainCtrlAuthorityService.init(node);
+}
+
+void DJIMatricePSDKPlatform_impl::timer_tick()
+{
+
 }
 
 }  // namespace as2_platform_dji_psdk
