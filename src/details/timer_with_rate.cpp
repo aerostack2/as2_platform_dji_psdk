@@ -33,28 +33,30 @@
 namespace as2_platform_dji_psdk
 {
 
-void TimerWithRate::init(rclcpp::Node *node) {
+void TimerWithRate::init(rclcpp::Node * node)
+{
+  node_ = node;
   float cmd_freq_ = 100.0;
   try {
-      node->get_parameter("cmd_freq", cmd_freq_); // Set if parameter is declared
-  } catch (...) { }
-  rate = std::chrono::duration<double>(1.0f / cmd_freq_);
-  timer_ = node->create_wall_timer(rate, std::bind(&TimerWithRate::tick_rate, this));
+    node->get_parameter("cmd_freq", cmd_freq_);   // Set if parameter is declared
+  } catch (...) {
+  }
+  rate_ = std::chrono::duration<double>(1.0f / cmd_freq_);
+  timer_ = node->create_wall_timer(rate_, std::bind(&TimerWithRate::tick_rate, this));
 }
 
-void TimerWithRate::tick_rate() {
+void TimerWithRate::tick_rate()
+{
   // TODO(stapia): Review first call to TimerWithRate::tick_rate()
   this->timer_tick();  // Call the actual tick (overriden virtual)
   // Check if time constrains are fulfilled
-  rclcpp::Time now = this->now();
+  rclcpp::Time now = this->node_->now();
   // Compute time to next tick
   // TODO(stapia): is this rclcpp::TimerBase::time_until_trigger() < 0?
   auto next_tick = last_ + period_;
-  if ( now > next_tick ) {
-    RCLCPP_CRITICAL(this->get_logger(), "Time requirement not fulfilled");
+  if (now > next_tick) {
+    RCLCPP_ERROR(this->node_->get_logger(), "Time deadline was not fulfilled");
   }
 }
 
 }  // namespace as2_platform_dji_psdk
-
-#endif  // DETAILS__TIMER_WITH_RATE_HPP_

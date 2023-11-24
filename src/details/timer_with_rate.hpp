@@ -51,9 +51,10 @@ public:
   void tick_rate();
 
 protected:
+  rclcpp::Node * node_;
   std::chrono::nanoseconds period_;
   std::chrono::duration<double> rate_;
-  rclcpp::::Time last_;
+  rclcpp::Time last_;
   std::shared_ptr<rclcpp::TimerBase> timer_;
 };
 

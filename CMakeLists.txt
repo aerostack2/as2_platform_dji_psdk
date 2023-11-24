@@ -39,6 +39,7 @@ include_directories(
 set(SOURCE_CPP_FILES
   src/as2_platform_dji_psdk.cpp
   src/details/as2_dji_matrice_psdk_platform_impl.cpp
+  src/details/timer_with_rate.cpp
 )
 
 # Create the node dynamic library
