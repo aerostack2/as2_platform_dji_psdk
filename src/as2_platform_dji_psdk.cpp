@@ -26,7 +26,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-
 #include "as2_platform_dji_psdk.hpp"
 #include "details/as2_dji_matrice_psdk_platform_impl.hpp"
 
@@ -34,24 +33,25 @@ namespace as2_platform_dji_psdk
 {
 
 DJIMatricePSDKPlatform::DJIMatricePSDKPlatform(const rclcpp::NodeOptions & options)
-: as2::AerialPlatform(options), _impl(new DJIMatricePSDKPlatform_impl{}) {}
-
-void DJIMatricePSDKPlatform::configureSensors()
+: as2::AerialPlatform(options)
 {
-  _impl->init(this);
-  // TODO(stapia) automatic test will fail due to timeout because the service is unavailable
-  if (!_impl->setLocalPositionService.wait_for_service()) {
-    // TODO(cvar): Since waiting is cancelled, is it neccesary any further action?
-    RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. Exiting.");
-  }
+  _impl = std::make_shared<DJIMatricePSDKPlatform_impl>(this);
 }
+
+void DJIMatricePSDKPlatform::configureSensors() {_impl->init(this);}
 
 bool DJIMatricePSDKPlatform::ownSetArmingState(bool state)
 {
   // Set Local Position at the begining of flight
   auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
-  _impl->setLocalPositionService.callAsyncServer(request);
-  return true;
+  auto response = std::make_shared<std_srvs::srv::Trigger::Response>();
+  bool sr = _impl->setLocalPositionService.sendRequest(request, response);
+  bool success = sr && response->success;
+  if (!success) {
+    RCLCPP_INFO(
+      this->get_logger(), "Send request was not succeed due to '%s'", response->message.data());
+  }
+  return success;
 }
 
 bool DJIMatricePSDKPlatform::ownSetOffboardControl(bool offboard)
@@ -63,8 +63,6 @@ bool DJIMatricePSDKPlatform::ownSetOffboardControl(bool offboard)
 bool DJIMatricePSDKPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg)
 {
   // Set platform control mode here
-  auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
-  _impl->obtainCtrlAuthorityService.callAsyncServer(request);
   return true;
 }
 

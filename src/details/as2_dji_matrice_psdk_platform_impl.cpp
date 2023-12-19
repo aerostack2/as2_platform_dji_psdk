@@ -26,26 +26,17 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-
 #include "as2_dji_matrice_psdk_platform_impl.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace as2_platform_dji_psdk
 {
 
-DJIMatricePSDKPlatform_impl::DJIMatricePSDKPlatform_impl() {}
+DJIMatricePSDKPlatform_impl::DJIMatricePSDKPlatform_impl(as2::Node * node_)
+: setLocalPositionService(SetLocalPositionService::name, node_),
+  obtainCtrlAuthorityService(ObtainCtrlAuthorityService::name, node_)
+{}
 
-void DJIMatricePSDKPlatform_impl::init(rclcpp::Node * node)
-{
-  TimerWithRate::init(node);
-  velocityCommand.init(node);
-  setLocalPositionService.init(node);
-  obtainCtrlAuthorityService.init(node);
-}
-
-void DJIMatricePSDKPlatform_impl::timer_tick()
-{
-
-}
+void DJIMatricePSDKPlatform_impl::init(rclcpp::Node * node) {velocityCommand.init(node);}
 
 }  // namespace as2_platform_dji_psdk

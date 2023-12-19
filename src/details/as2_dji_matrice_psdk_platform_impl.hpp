@@ -26,7 +26,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-
 #ifndef DETAILS__AS2_DJI_MATRICE_PSDK_PLATFORM_IMPL_HPP_
 #define DETAILS__AS2_DJI_MATRICE_PSDK_PLATFORM_IMPL_HPP_
 
@@ -34,9 +33,8 @@
 #include "rclcpp/rclcpp.hpp"
 #include "output.hpp"
 #include "sensor_msgs/msg/joy.hpp"
-#include "service_client.hpp"
 #include "std_srvs/srv/trigger.hpp"
-#include "timer_with_rate.hpp"
+#include "as2_core/synchronous_service_client.hpp"
 
 // #include "psdk_interfaces/msg/gimbal_rotation.hpp"
 
@@ -63,18 +61,16 @@ struct ObtainCtrlAuthorityService
   inline static std::string name = "psdk_ros2/obtain_ctrl_authority";
 };
 
-class DJIMatricePSDKPlatform_impl : public TimerWithRate
+class DJIMatricePSDKPlatform_impl
 {
 public:
   Output<VelocityCommand> velocityCommand;
-  ServiceClient<SetLocalPositionService> setLocalPositionService;
-  ServiceClient<ObtainCtrlAuthorityService> obtainCtrlAuthorityService;
+  as2::SynchronousServiceClient<SetLocalPositionService::Msg_t> setLocalPositionService;
+  as2::SynchronousServiceClient<ObtainCtrlAuthorityService::Msg_t> obtainCtrlAuthorityService;
 
 public:
-  DJIMatricePSDKPlatform_impl();
+  DJIMatricePSDKPlatform_impl(as2::Node * node_);
   void init(rclcpp::Node *);
-  virtual void timer_tick() override; // From i_TimerTick -< TimerWithRate
-
   // psdk_interfaces::msg::GimbalRotation gimbal_rotation_msg_;
 };
 
