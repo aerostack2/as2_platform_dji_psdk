@@ -62,8 +62,16 @@ bool DJIMatricePSDKPlatform::ownSetOffboardControl(bool offboard)
 
 bool DJIMatricePSDKPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg)
 {
-  // Set platform control mode here
-  return true;
+  // Set Local Position at the begining of flight
+  auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+  auto response = std::make_shared<std_srvs::srv::Trigger::Response>();
+  bool sr = _impl->obtainCtrlAuthorityService.sendRequest(request, response);
+  bool success = sr && response->success;
+  if (!success) {
+    RCLCPP_INFO(
+      this->get_logger(), "Send request was not succeed due to '%s'", response->message.data());
+  }
+  return success;
 }
 
 bool DJIMatricePSDKPlatform::ownSendCommand()
