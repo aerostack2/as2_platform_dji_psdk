@@ -43,21 +43,51 @@ namespace as2_platform_dji_psdk
 
 struct VelocityCommand
 {
-  using Msg_t = sensor_msgs::msg::Joy;
-  inline static std::string name = "/psdk_ros2/flight_control_setpoint_ENUposition_yaw";
+  using Msg_t                    = sensor_msgs::msg::Joy;
+  inline static std::string name = "psdk_ros2/flight_control_setpoint_ENUvelocity_yawrate";
   // TODO(stapia): Check the actual command name
 };
 
+// Service to turn motors on
+struct TurnOnMotors
+{
+  using Msg_t                    = std_srvs::srv::Trigger;
+  inline static std::string name = "psdk_ros2/turn_on_motors";
+};
+
+// Service to turn motors off
+struct TurnOffMotors
+{
+  using Msg_t                    = std_srvs::srv::Trigger;
+  inline static std::string name = "psdk_ros2/turn_off_motors";
+};
+
+// Service to takeoff
+struct Takeoff
+{
+  using Msg_t                    = std_srvs::srv::Trigger;
+  inline static std::string name = "psdk_ros2/takeoff";
+};
+
+// Service to land
+struct Land
+{
+  using Msg_t                    = std_srvs::srv::Trigger;
+  inline static std::string name = "psdk_ros2/land";
+};
+
 // Service to set initial reference should be called before any control command
+// Note that this is a service used in the psdk wrapper to transform the coordiante
+// frames later
 struct SetLocalPositionService
 {
-  using Msg_t = std_srvs::srv::Trigger;
+  using Msg_t                    = std_srvs::srv::Trigger;
   inline static std::string name = "/psdk_ros2/set_local_position_ref";
 };
 
 struct ObtainCtrlAuthorityService
 {
-  using Msg_t = std_srvs::srv::Trigger;
+  using Msg_t                    = std_srvs::srv::Trigger;
   inline static std::string name = "psdk_ros2/obtain_ctrl_authority";
 };
 
@@ -65,6 +95,10 @@ class DJIMatricePSDKPlatform_impl
 {
 public:
   Output<VelocityCommand> velocityCommand;
+  as2::SynchronousServiceClient<TurnOnMotors::Msg_t> turnOnMotorsService;
+  as2::SynchronousServiceClient<TurnOffMotors::Msg_t> turnOffMotorsService;
+  as2::SynchronousServiceClient<Takeoff::Msg_t> takeoffService;
+  as2::SynchronousServiceClient<Land::Msg_t> landService;
   as2::SynchronousServiceClient<SetLocalPositionService::Msg_t> setLocalPositionService;
   as2::SynchronousServiceClient<ObtainCtrlAuthorityService::Msg_t> obtainCtrlAuthorityService;
 

@@ -38,39 +38,62 @@ DJIMatricePSDKPlatform::DJIMatricePSDKPlatform(const rclcpp::NodeOptions & optio
   _impl = std::make_shared<DJIMatricePSDKPlatform_impl>(this);
 }
 
-void DJIMatricePSDKPlatform::configureSensors() {_impl->init(this);}
+void DJIMatricePSDKPlatform::configureSensors() { _impl->init(this); }
 
 bool DJIMatricePSDKPlatform::ownSetArmingState(bool state)
 {
+  // TODO: (stapia) ¿Fijar la posición va antes o después de arrancar motores?
   // Set Local Position at the begining of flight
-  auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+  auto request  = std::make_shared<std_srvs::srv::Trigger::Request>();
   auto response = std::make_shared<std_srvs::srv::Trigger::Response>();
-  bool sr = _impl->setLocalPositionService.sendRequest(request, response);
-  bool success = sr && response->success;
+  bool sr       = _impl->setLocalPositionService.sendRequest(request, response);
+  bool success  = sr && response->success;
   if (!success) {
     RCLCPP_INFO(
       this->get_logger(), "Send request was not succeed due to '%s'", response->message.data());
+    return success;
+  }
+  // Turn on motors
+  sr      = _impl->turnOnMotorsService.sendRequest(request, response);
+  success = sr && response->success;
+  if (!success) {
+    RCLCPP_INFO(
+      this->get_logger(), "Send request was not succeed due to '%s'", response->message.data());
+    return success;
   }
   return success;
 }
 
 bool DJIMatricePSDKPlatform::ownSetOffboardControl(bool offboard)
 {
-  // Set offboard control here
-  return false;
+  // Turn on motors
+  auto request  = std::make_shared<std_srvs::srv::Trigger::Request>();
+  auto response = std::make_shared<std_srvs::srv::Trigger::Response>();
+  bool sr       = _impl->turnOffMotorsService.sendRequest(request, response);
+  bool success  = sr && response->success;
+  if (!success) {
+    RCLCPP_INFO(
+      this->get_logger(), "Send request was not succeed due to '%s'", response->message.data());
+    return success;
+  }
+  return success;
 }
 
 bool DJIMatricePSDKPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg)
 {
-  // Set Local Position at the begining of flight
-  auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+  // Obtain control authority
+  // TODO: (stapia) ¿Dónde hay que soltar la autorización?
+  auto request  = std::make_shared<std_srvs::srv::Trigger::Request>();
   auto response = std::make_shared<std_srvs::srv::Trigger::Response>();
-  bool sr = _impl->obtainCtrlAuthorityService.sendRequest(request, response);
-  bool success = sr && response->success;
+  bool sr       = _impl->obtainCtrlAuthorityService.sendRequest(request, response);
+  bool success  = sr && response->success;
   if (!success) {
     RCLCPP_INFO(
       this->get_logger(), "Send request was not succeed due to '%s'", response->message.data());
+    return success;
   }
+  // Note: Since velocity command in psdk wrapper already has the configuration of mode and
+  // command sending there is no need to store anything else.
   return success;
 }
 
@@ -83,43 +106,30 @@ bool DJIMatricePSDKPlatform::ownSendCommand()
     _impl->velocityCommand->axes[2] = 0.0f;
     _impl->velocityCommand->axes[3] = 0.0f;  // yaw (rad)
     _impl->velocityCommand.publish();
-    RCLCPP_INFO(this->get_logger(), " HOVERING");
+    RCLCPP_INFO(this->get_logger(), "HOVERING");
     return true;
   }
-  /*
+  // Check whether is a new input for joystick command
   if (!this->has_new_references_) {
-    RCLCPP_DEBUG_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
-                          "No new references since mode change");
+    RCLCPP_DEBUG_THROTTLE(
+      this->get_logger(), *this->get_clock(), 1000, "No new references since mode change");
     return true;
-  }
-  double x, y, z, yaw;
-  x = y = z = yaw = 0.0;
-
-  if (platform_info_msg_.current_control_mode.yaw_mode == as2_msgs::msg::ControlMode::YAW_ANGLE) {
-    tf2::Quaternion q(
-        this->command_pose_msg_.pose.orientation.x, this->command_pose_msg_.pose.orientation.y,
-        this->command_pose_msg_.pose.orientation.z, this->command_pose_msg_.pose.orientation.w);
-    tf2::Matrix3x3 m(q);
-    double _a, _b, yaw_;
-    m.getRPY(_a, _b, yaw);
-    yaw = -yaw * 180.0 / M_PI;
-  } else if (platform_info_msg_.current_control_mode.yaw_mode ==
-             as2_msgs::msg::ControlMode::YAW_SPEED) {
-    yaw = -this->command_twist_msg_.twist.angular.z * 180.0 / M_PI;
-  } else {
-    RCLCPP_ERROR(this->get_logger(), "Unknown yaw mode");
-    return false;
   }
 
   switch (platform_info_msg_.current_control_mode.control_mode) {
     // case as2_msgs::msg::ControlMode::POSITION: {
     // } break;
-    case as2_msgs::msg::ControlMode::SPEED: {
-      // Conversion from AS2 ENU frame into DJI NEU frame
-      x = this->command_twist_msg_.twist.linear.y;
-      y = this->command_twist_msg_.twist.linear.x;
-      z = this->command_twist_msg_.twist.linear.z;
-    } break;
+    case as2_msgs::msg::ControlMode::SPEED:
+      {
+        // Conversion from AS2 ENU frame into DJI NEU frame already done inside psdk wrapper
+        _impl->velocityCommand->axes[0] = this->command_twist_msg_.twist.linear.x;
+        _impl->velocityCommand->axes[1] = this->command_twist_msg_.twist.linear.y;
+        _impl->velocityCommand->axes[2] = this->command_twist_msg_.twist.linear.z;
+        // TODO: (stapia) Check coordinate and convertion for yaw speed
+        _impl->velocityCommand->axes[3] = -this->command_twist_msg_.twist.angular.z * 180.0 / M_PI;
+        _impl->velocityCommand.publish();
+      }
+      break;
     // case as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE: {
     // } break;
     // case as2_msgs::msg::ControlMode::ACRO: {
@@ -128,39 +138,44 @@ bool DJIMatricePSDKPlatform::ownSendCommand()
       RCLCPP_ERROR(this->get_logger(), "Unknown control mode in send command");
       return false;
   }
-  // vehicle_->flightController->setJoystickMode(dji_joystick_mode_);
-  // FlightController::JoystickCommand joystick_cmd = {
-  //     (float)x,
-  //     (float)y,
-  //     (float)z,
-  //     (float)yaw,
-  // };
-  // vehicle_->flightController->setJoystickCommand(joystick_cmd);
-  // vehicle_->flightController->joystickAction();
-  */
   return true;
 }
 
 void DJIMatricePSDKPlatform::ownStopPlatform()
 {
-  // Send hover to platform here
+  platform_info_msg_.current_control_mode.control_mode = as2_msgs::msg::ControlMode::HOVER;
 }
 
 void DJIMatricePSDKPlatform::ownKillSwitch()
 {
   // Send kill switch to platform here
+  // TODO: (stapia) ¿Qué hay que hacer aquí?
 }
 
 bool DJIMatricePSDKPlatform::ownTakeoff()
 {
-  // Send takeoff to platform here
-  return false;
+  auto request  = std::make_shared<std_srvs::srv::Trigger::Request>();
+  auto response = std::make_shared<std_srvs::srv::Trigger::Response>();
+  bool sr       = _impl->takeoffService.sendRequest(request, response);
+  bool success  = sr && response->success;
+  if (!success) {
+    RCLCPP_INFO(
+      this->get_logger(), "Send request was not succeed due to '%s'", response->message.data());
+  }
+  return success;
 }
 
 bool DJIMatricePSDKPlatform::ownLand()
 {
-  // Send land to platform here
-  return false;
+  auto request  = std::make_shared<std_srvs::srv::Trigger::Request>();
+  auto response = std::make_shared<std_srvs::srv::Trigger::Response>();
+  bool sr       = _impl->landService.sendRequest(request, response);
+  bool success  = sr && response->success;
+  if (!success) {
+    RCLCPP_INFO(
+      this->get_logger(), "Send request was not succeed due to '%s'", response->message.data());
+  }
+  return success;
 }
 
 }  // namespace as2_platform_dji_psdk

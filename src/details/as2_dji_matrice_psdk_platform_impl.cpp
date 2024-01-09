@@ -33,10 +33,14 @@ namespace as2_platform_dji_psdk
 {
 
 DJIMatricePSDKPlatform_impl::DJIMatricePSDKPlatform_impl(as2::Node * node_)
-: setLocalPositionService(SetLocalPositionService::name, node_),
+: turnOnMotorsService(TurnOnMotors::name, node_),
+  turnOffMotorsService(Takeoff::name, node_),
+  takeoffService(Takeoff::name, node_),
+  landService(Land::name, node_),
+  setLocalPositionService(SetLocalPositionService::name, node_),
   obtainCtrlAuthorityService(ObtainCtrlAuthorityService::name, node_)
 {}
 
-void DJIMatricePSDKPlatform_impl::init(rclcpp::Node * node) {velocityCommand.init(node);}
+void DJIMatricePSDKPlatform_impl::init(rclcpp::Node * node) { velocityCommand.init(node); }
 
 }  // namespace as2_platform_dji_psdk
