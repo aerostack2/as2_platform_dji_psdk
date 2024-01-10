@@ -47,7 +47,7 @@ public:
 
   void publish() const {publisher_->publish(state_variable);}
 
-  Msg_t * operator->() {return &state_variable;}
+  Msg_t& msg() {return state_variable;}
 
 protected:
   Msg_t state_variable;

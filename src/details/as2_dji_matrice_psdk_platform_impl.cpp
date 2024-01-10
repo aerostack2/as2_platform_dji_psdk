@@ -32,15 +32,91 @@
 namespace as2_platform_dji_psdk
 {
 
-DJIMatricePSDKPlatform_impl::DJIMatricePSDKPlatform_impl(as2::Node * node_)
-: turnOnMotorsService(TurnOnMotors::name, node_),
-  turnOffMotorsService(Takeoff::name, node_),
-  takeoffService(Takeoff::name, node_),
-  landService(Land::name, node_),
-  setLocalPositionService(SetLocalPositionService::name, node_),
-  obtainCtrlAuthorityService(ObtainCtrlAuthorityService::name, node_)
-{}
+DJIMatricePSDKPlatform_impl::DJIMatricePSDKPlatform_impl(as2::Node * node)
+: turnOnMotorsService(TurnOnMotors::name, node),
+  turnOffMotorsService(Takeoff::name, node),
+  takeoffService(Takeoff::name, node),
+  landService(Land::name, node),
+  setLocalPositionService(SetLocalPositionService::name, node),
+  obtainCtrlAuthorityService(ObtainCtrlAuthorityService::name, node),
+  odom_sensor_("odom", node),
+  node_(node)
+{
+  velocityCommand.msg() = sensor_msgs::msg::Joy();
+  velocityCommand.msg().axes.resize(4);
+  velocityCommand.msg().buttons.resize(2);
+}
 
-void DJIMatricePSDKPlatform_impl::init(rclcpp::Node * node) { velocityCommand.init(node); }
+void DJIMatricePSDKPlatform_impl::init(rclcpp::Node * node) { 
+  velocityCommand.init(node);
+
+  // Subscribe to the odometry topic
+  position_fused_sub_ = node->create_subscription<psdk_interfaces::msg::PositionFused>(
+    "psdk_ros2/position_fused", 10,
+    std::bind(&DJIMatricePSDKPlatform_impl::position_fused_callback, this, std::placeholders::_1));
+
+  // Subscribe to the attitude topic
+  attitude_sub_ = node->create_subscription<geometry_msgs::msg::QuaternionStamped>(
+    "psdk_ros2/attitude", 10,
+    std::bind(&DJIMatricePSDKPlatform_impl::attitude_callback, this, std::placeholders::_1));
+
+  velocity_sub_ = node->create_subscription<geometry_msgs::msg::Vector3Stamped>(
+    "psdk_ros2/velocity_ground_fused", 10,
+    std::bind(&DJIMatricePSDKPlatform_impl::velocity_callback, this, std::placeholders::_1));
+
+  angular_velocity_sub_ = node->create_subscription<geometry_msgs::msg::Vector3Stamped>(
+    "psdk_ros2/angular_rate_body_raw", 10,
+    std::bind(&DJIMatricePSDKPlatform_impl::velocity_callback, this, std::placeholders::_1));
+
+  RCLCPP_INFO(node->get_logger(), "DJIMatricePSDKPlatform_impl initialized");
+}
+
+void DJIMatricePSDKPlatform_impl::position_fused_callback(const psdk_interfaces::msg::PositionFused::SharedPtr msg)
+{
+  position_fused_msg_ = *msg.get();
+
+  // Update the odometry sensor
+  nav_msgs::msg::Odometry odom_msg;
+
+  odom_msg.header.stamp = node_->now();
+  odom_msg.header.frame_id =
+      as2::tf::generateTfName(node_->get_namespace(), "odom");
+  odom_msg.child_frame_id =
+      as2::tf::generateTfName(node_->get_namespace(), "base_link");
+  // odom_msg.header.frame_id = "drone0/odom";
+  // odom_msg.child_frame_id = "drone0/base_link";
+  odom_msg.pose.pose.position.x = position_fused_msg_.position.x;
+  odom_msg.pose.pose.position.y = position_fused_msg_.position.y;
+  odom_msg.pose.pose.position.z = position_fused_msg_.position.z;
+  odom_msg.pose.pose.orientation.x = attitude_msg_.quaternion.x;
+  odom_msg.pose.pose.orientation.y = attitude_msg_.quaternion.y;
+  odom_msg.pose.pose.orientation.z = attitude_msg_.quaternion.z;
+  odom_msg.pose.pose.orientation.w = attitude_msg_.quaternion.w;
+  odom_msg.twist.twist.linear.x = velocity_msg_.vector.x;
+  odom_msg.twist.twist.linear.y = velocity_msg_.vector.y;
+  odom_msg.twist.twist.linear.z = velocity_msg_.vector.z;
+  odom_msg.twist.twist.angular.x = angular_velocity_msg_.vector.x;
+  odom_msg.twist.twist.angular.y = angular_velocity_msg_.vector.y;
+  odom_msg.twist.twist.angular.z = angular_velocity_msg_.vector.z;
+
+  // RCLCPP_INFO(node_->get_logger(), "Position: %f, %f, %f", position_fused_msg_.position.x, position_fused_msg_.position.y, position_fused_msg_.position.z);
+  odom_sensor_.updateData(odom_msg);
+}
+
+void DJIMatricePSDKPlatform_impl::attitude_callback(const geometry_msgs::msg::QuaternionStamped::SharedPtr msg)
+{
+  attitude_msg_ = *msg.get();
+}
+
+void DJIMatricePSDKPlatform_impl::velocity_callback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg)
+{
+  velocity_msg_ = *msg.get();
+}
+
+void DJIMatricePSDKPlatform_impl::angular_velocity_callback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg)
+{
+  angular_velocity_msg_ = *msg.get();
+}
+
 
 }  // namespace as2_platform_dji_psdk

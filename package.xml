@@ -20,7 +20,7 @@
   <depend>as2_core</depend>
   <depend>as2_msgs</depend>
   <depend>std_msgs</depend>
-  <!-- <depend>psdk_interfaces</depend> -->
+  <depend>psdk_interfaces</depend>
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_common</test_depend>

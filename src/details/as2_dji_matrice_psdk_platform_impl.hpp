@@ -35,6 +35,11 @@
 #include "sensor_msgs/msg/joy.hpp"
 #include "std_srvs/srv/trigger.hpp"
 #include "as2_core/synchronous_service_client.hpp"
+#include "as2_core/sensor.hpp"
+#include "nav_msgs/msg/odometry.hpp"
+#include "psdk_interfaces/msg/position_fused.hpp"
+#include "geometry_msgs/msg/quaternion_stamped.hpp"
+#include "geometry_msgs/msg/vector3_stamped.hpp"
 
 // #include "psdk_interfaces/msg/gimbal_rotation.hpp"
 
@@ -82,7 +87,7 @@ struct Land
 struct SetLocalPositionService
 {
   using Msg_t                    = std_srvs::srv::Trigger;
-  inline static std::string name = "/psdk_ros2/set_local_position_ref";
+  inline static std::string name = "psdk_ros2/set_local_position_ref";
 };
 
 struct ObtainCtrlAuthorityService
@@ -101,6 +106,24 @@ public:
   as2::SynchronousServiceClient<Land::Msg_t> landService;
   as2::SynchronousServiceClient<SetLocalPositionService::Msg_t> setLocalPositionService;
   as2::SynchronousServiceClient<ObtainCtrlAuthorityService::Msg_t> obtainCtrlAuthorityService;
+
+  as2::sensors::Sensor<nav_msgs::msg::Odometry> odom_sensor_;
+  rclcpp::Subscription<psdk_interfaces::msg::PositionFused>::SharedPtr position_fused_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::QuaternionStamped>::SharedPtr attitude_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr velocity_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr angular_velocity_sub_;
+
+  void position_fused_callback(const psdk_interfaces::msg::PositionFused::SharedPtr msg);
+  void attitude_callback(const geometry_msgs::msg::QuaternionStamped::SharedPtr msg);
+  void velocity_callback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
+  void angular_velocity_callback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
+
+  psdk_interfaces::msg::PositionFused position_fused_msg_;
+  geometry_msgs::msg::QuaternionStamped attitude_msg_;
+  geometry_msgs::msg::Vector3Stamped velocity_msg_;
+  geometry_msgs::msg::Vector3Stamped angular_velocity_msg_;
+
+  as2::Node * node_;
 
 public:
   DJIMatricePSDKPlatform_impl(as2::Node * node_);
