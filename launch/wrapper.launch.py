@@ -31,10 +31,10 @@ def generate_launch_description():
     namespace = LaunchConfiguration("namespace")
     # Get wrapper parameters
     psdk_wrapper_pkg_share = FindPackageShare(
-        "psdk_wrapper").find("psdk_wrapper")
+        "psdk_wrapper").find("as2_platform_dji_psdk")
     wrapper_params = os.path.join(
         psdk_wrapper_pkg_share,
-        "cfg",
+        "config",
         "psdk_params.yaml",
     )
 

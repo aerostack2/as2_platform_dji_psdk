@@ -66,7 +66,7 @@ void DJIMatricePSDKPlatform_impl::init(rclcpp::Node * node) {
 
   angular_velocity_sub_ = node->create_subscription<geometry_msgs::msg::Vector3Stamped>(
     "psdk_ros2/angular_rate_body_raw", 10,
-    std::bind(&DJIMatricePSDKPlatform_impl::velocity_callback, this, std::placeholders::_1));
+    std::bind(&DJIMatricePSDKPlatform_impl::angular_velocity_callback, this, std::placeholders::_1));
 
   RCLCPP_INFO(node->get_logger(), "DJIMatricePSDKPlatform_impl initialized");
 }
@@ -83,8 +83,6 @@ void DJIMatricePSDKPlatform_impl::position_fused_callback(const psdk_interfaces:
       as2::tf::generateTfName(node_->get_namespace(), "odom");
   odom_msg.child_frame_id =
       as2::tf::generateTfName(node_->get_namespace(), "base_link");
-  // odom_msg.header.frame_id = "drone0/odom";
-  // odom_msg.child_frame_id = "drone0/base_link";
   odom_msg.pose.pose.position.x = position_fused_msg_.position.x;
   odom_msg.pose.pose.position.y = position_fused_msg_.position.y;
   odom_msg.pose.pose.position.z = position_fused_msg_.position.z;
@@ -92,9 +90,16 @@ void DJIMatricePSDKPlatform_impl::position_fused_callback(const psdk_interfaces:
   odom_msg.pose.pose.orientation.y = attitude_msg_.quaternion.y;
   odom_msg.pose.pose.orientation.z = attitude_msg_.quaternion.z;
   odom_msg.pose.pose.orientation.w = attitude_msg_.quaternion.w;
-  odom_msg.twist.twist.linear.x = velocity_msg_.vector.x;
-  odom_msg.twist.twist.linear.y = velocity_msg_.vector.y;
-  odom_msg.twist.twist.linear.z = velocity_msg_.vector.z;
+
+  // convert ENU to FLU
+  Eigen::Vector3d vel_ENU = Eigen::Vector3d(
+      velocity_msg_.vector.x, velocity_msg_.vector.y, velocity_msg_.vector.z);
+  auto flu_speed =
+      as2::frame::transform(odom_msg.pose.pose.orientation, vel_ENU);
+  odom_msg.twist.twist.linear.x = flu_speed.x();
+  odom_msg.twist.twist.linear.y = flu_speed.y();
+  odom_msg.twist.twist.linear.z = flu_speed.z();
+
   odom_msg.twist.twist.angular.x = angular_velocity_msg_.vector.x;
   odom_msg.twist.twist.angular.y = angular_velocity_msg_.vector.y;
   odom_msg.twist.twist.angular.z = angular_velocity_msg_.vector.z;
@@ -118,5 +123,4 @@ void DJIMatricePSDKPlatform_impl::angular_velocity_callback(const geometry_msgs:
   angular_velocity_msg_ = *msg.get();
 }
 
-
-}  // namespace as2_platform_dji_psdk
+} // namespace as2_platform_dji_psdk

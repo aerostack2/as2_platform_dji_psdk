@@ -36,6 +36,7 @@
 #include "std_srvs/srv/trigger.hpp"
 #include "as2_core/synchronous_service_client.hpp"
 #include "as2_core/sensor.hpp"
+#include "as2_core/utils/frame_utils.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "psdk_interfaces/msg/position_fused.hpp"
 #include "geometry_msgs/msg/quaternion_stamped.hpp"

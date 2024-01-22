@@ -131,8 +131,7 @@ bool DJIMatricePSDKPlatform::ownSendCommand()
         _impl->velocityCommand.msg().axes[0] = this->command_twist_msg_.twist.linear.x;
         _impl->velocityCommand.msg().axes[1] = this->command_twist_msg_.twist.linear.y;
         _impl->velocityCommand.msg().axes[2] = this->command_twist_msg_.twist.linear.z;
-        // TODO: (stapia) Check coordinate and convertion for yaw speed
-        _impl->velocityCommand.msg().axes[3] = -this->command_twist_msg_.twist.angular.z * 180.0 / M_PI;
+        _impl->velocityCommand.msg().axes[3] = this->command_twist_msg_.twist.angular.z;
         _impl->velocityCommand.publish();
       }
       break;
