@@ -47,8 +47,10 @@ DJIMatricePSDKPlatform_impl::DJIMatricePSDKPlatform_impl(as2::Node * node)
   velocityCommand.msg().buttons.resize(2);
 }
 
-void DJIMatricePSDKPlatform_impl::init(rclcpp::Node * node) { 
+void DJIMatricePSDKPlatform_impl::init(rclcpp::Node * node)
+{
   velocityCommand.init(node);
+  gimbalCommand.init(node);
 
   // Subscribe to the odometry topic
   position_fused_sub_ = node->create_subscription<psdk_interfaces::msg::PositionFused>(
@@ -66,36 +68,35 @@ void DJIMatricePSDKPlatform_impl::init(rclcpp::Node * node) {
 
   angular_velocity_sub_ = node->create_subscription<geometry_msgs::msg::Vector3Stamped>(
     "psdk_ros2/angular_rate_body_raw", 10,
-    std::bind(&DJIMatricePSDKPlatform_impl::angular_velocity_callback, this, std::placeholders::_1));
+    std::bind(
+      &DJIMatricePSDKPlatform_impl::angular_velocity_callback, this, std::placeholders::_1));
 
   RCLCPP_INFO(node->get_logger(), "DJIMatricePSDKPlatform_impl initialized");
 }
 
-void DJIMatricePSDKPlatform_impl::position_fused_callback(const psdk_interfaces::msg::PositionFused::SharedPtr msg)
+void DJIMatricePSDKPlatform_impl::position_fused_callback(
+  const psdk_interfaces::msg::PositionFused::SharedPtr msg)
 {
   position_fused_msg_ = *msg.get();
 
   // Update the odometry sensor
   nav_msgs::msg::Odometry odom_msg;
 
-  odom_msg.header.stamp = node_->now();
-  odom_msg.header.frame_id =
-      as2::tf::generateTfName(node_->get_namespace(), "odom");
-  odom_msg.child_frame_id =
-      as2::tf::generateTfName(node_->get_namespace(), "base_link");
-  odom_msg.pose.pose.position.x = position_fused_msg_.position.x;
-  odom_msg.pose.pose.position.y = position_fused_msg_.position.y;
-  odom_msg.pose.pose.position.z = position_fused_msg_.position.z;
+  odom_msg.header.stamp            = node_->now();
+  odom_msg.header.frame_id         = as2::tf::generateTfName(node_->get_namespace(), "odom");
+  odom_msg.child_frame_id          = as2::tf::generateTfName(node_->get_namespace(), "base_link");
+  odom_msg.pose.pose.position.x    = position_fused_msg_.position.x;
+  odom_msg.pose.pose.position.y    = position_fused_msg_.position.y;
+  odom_msg.pose.pose.position.z    = position_fused_msg_.position.z;
   odom_msg.pose.pose.orientation.x = attitude_msg_.quaternion.x;
   odom_msg.pose.pose.orientation.y = attitude_msg_.quaternion.y;
   odom_msg.pose.pose.orientation.z = attitude_msg_.quaternion.z;
   odom_msg.pose.pose.orientation.w = attitude_msg_.quaternion.w;
 
   // convert ENU to FLU
-  Eigen::Vector3d vel_ENU = Eigen::Vector3d(
-      velocity_msg_.vector.x, velocity_msg_.vector.y, velocity_msg_.vector.z);
-  auto flu_speed =
-      as2::frame::transform(odom_msg.pose.pose.orientation, vel_ENU);
+  Eigen::Vector3d vel_ENU =
+    Eigen::Vector3d(velocity_msg_.vector.x, velocity_msg_.vector.y, velocity_msg_.vector.z);
+  auto flu_speed                = as2::frame::transform(odom_msg.pose.pose.orientation, vel_ENU);
   odom_msg.twist.twist.linear.x = flu_speed.x();
   odom_msg.twist.twist.linear.y = flu_speed.y();
   odom_msg.twist.twist.linear.z = flu_speed.z();
@@ -108,19 +109,54 @@ void DJIMatricePSDKPlatform_impl::position_fused_callback(const psdk_interfaces:
   odom_sensor_.updateData(odom_msg);
 }
 
-void DJIMatricePSDKPlatform_impl::attitude_callback(const geometry_msgs::msg::QuaternionStamped::SharedPtr msg)
+void DJIMatricePSDKPlatform_impl::attitude_callback(
+  const geometry_msgs::msg::QuaternionStamped::SharedPtr msg)
 {
   attitude_msg_ = *msg.get();
 }
 
-void DJIMatricePSDKPlatform_impl::velocity_callback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg)
+void DJIMatricePSDKPlatform_impl::velocity_callback(
+  const geometry_msgs::msg::Vector3Stamped::SharedPtr msg)
 {
   velocity_msg_ = *msg.get();
 }
 
-void DJIMatricePSDKPlatform_impl::angular_velocity_callback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg)
+void DJIMatricePSDKPlatform_impl::angular_velocity_callback(
+  const geometry_msgs::msg::Vector3Stamped::SharedPtr msg)
 {
   angular_velocity_msg_ = *msg.get();
 }
 
-} // namespace as2_platform_dji_psdk
+void DJIMatricePSDKPlatform_impl::gimbal_angle_callback(
+  const geometry_msgs::msg::Vector3::SharedPtr msg)
+{
+  // gimbal angle in the wrapper is at PSDKWrapper::gimbal_rotation_cb in gimbal.cpp
+  // pitch and yaw are changed in their sign
+  RCLCPP_INFO(node_->get_logger(), "Gimbal angle: %f %f %f", msg->x, msg->y, msg->z);
+  auto & out = gimbalCommand.msg();
+  // TODO (stapia) En OSDK era DJI::OSDK::PAYLOAD_INDEX_0 ver GimbalRotation.msg
+  out.payload_index = 1;
+
+  // From dji_typedef.h:
+  // DJI_GIMBAL_ROTATION_MODE_RELATIVE_ANGLE = 0, /*!< Relative angle rotation mode, represents rotating gimbal specified angles based on current angles. */
+  // DJI_GIMBAL_ROTATION_MODE_ABSOLUTE_ANGLE = 1, /*!< Absolute angle rotation mode, represents rotating gimbal to specified angles in the ground coordinate. */
+  // DJI_GIMBAL_ROTATION_MODE_SPEED = 2, /*!< Speed rotation mode, specifies rotation speed of gimbal in the ground coordinate. */
+  out.rotation_mode = 1;
+
+  // From dji_typedef.h:
+  // Note: Rotation is hard fixed to DJI_GIMBAL_MODE_FREE in the wrapper, that is to ground frame
+  // DJI_GIMBAL_MODE_FREE = 0, /*!< Free mode, fix gimbal attitude in the ground coordinate, ignoring movement of aircraft. */
+  // DJI_GIMBAL_MODE_FPV = 1, /*!< FPV (First Person View) mode, only control roll and yaw angle of gimbal in the ground coordinate to follow aircraft. */
+  // DJI_GIMBAL_MODE_YAW_FOLLOW = 2, /*!< Yaw follow mode, only control yaw angle of gimbal in the ground coordinate to follow aircraft. */
+
+  out.time = 0.5;  // In seconds, expected time to target rotation
+
+  // Angles are roll, pitch and yaw in radians
+  out.roll  = msg->x;
+  out.pitch = msg->y;
+  out.yaw   = msg->z;
+
+  gimbalCommand.publish();
+}
+
+}  // namespace as2_platform_dji_psdk

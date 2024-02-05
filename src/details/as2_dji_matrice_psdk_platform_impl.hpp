@@ -39,6 +39,7 @@
 #include "as2_core/utils/frame_utils.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "psdk_interfaces/msg/position_fused.hpp"
+#include "psdk_interfaces/msg/gimbal_rotation.hpp"
 #include "geometry_msgs/msg/quaternion_stamped.hpp"
 #include "geometry_msgs/msg/vector3_stamped.hpp"
 
@@ -46,6 +47,12 @@
 
 namespace as2_platform_dji_psdk
 {
+
+struct GimbalRotationCommand
+{
+  using Msg_t                    = psdk_interfaces::msg::GimbalRotation;
+  inline static std::string name = "psdk_ros2/gimbal_rotation";
+};
 
 struct VelocityCommand
 {
@@ -101,6 +108,8 @@ class DJIMatricePSDKPlatform_impl
 {
 public:
   Output<VelocityCommand> velocityCommand;
+  Output<GimbalRotationCommand> gimbalCommand;
+
   as2::SynchronousServiceClient<TurnOnMotors::Msg_t> turnOnMotorsService;
   as2::SynchronousServiceClient<TurnOffMotors::Msg_t> turnOffMotorsService;
   as2::SynchronousServiceClient<Takeoff::Msg_t> takeoffService;
@@ -113,11 +122,13 @@ public:
   rclcpp::Subscription<geometry_msgs::msg::QuaternionStamped>::SharedPtr attitude_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr velocity_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr angular_velocity_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::Vector3>::SharedPtr gimbal_angle_sub_;
 
   void position_fused_callback(const psdk_interfaces::msg::PositionFused::SharedPtr msg);
   void attitude_callback(const geometry_msgs::msg::QuaternionStamped::SharedPtr msg);
   void velocity_callback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
   void angular_velocity_callback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
+  void gimbal_angle_callback(const geometry_msgs::msg::Vector3::SharedPtr msg);
 
   psdk_interfaces::msg::PositionFused position_fused_msg_;
   geometry_msgs::msg::QuaternionStamped attitude_msg_;
