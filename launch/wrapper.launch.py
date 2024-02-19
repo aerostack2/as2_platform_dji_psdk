@@ -26,6 +26,11 @@ def generate_launch_description():
         'config', 'psdk_params.yaml'
     ])
 
+    link_config_file = PathJoinSubstitution([
+        FindPackageShare('as2_platform_dji_psdk'),
+        'config', 'link_config.json'
+    ])
+
     # Prepare the wrapper node
     wrapper_node = LifecycleNode(
         package="psdk_wrapper",
@@ -35,7 +40,10 @@ def generate_launch_description():
         output="screen",
         emulate_tty=True,
         parameters=[
-                LaunchConfiguration('psdk_params'),
+            {
+                "link_config_file_path": LaunchConfiguration('link_config_file_path'),
+            },
+            LaunchConfiguration('psdk_params_file_path'),
         ],
         remappings=[
             ("psdk_ros2/gps_position_fused", "sensor_measurements/gps"),
@@ -65,9 +73,12 @@ def generate_launch_description():
                               default_value=EnvironmentVariable(
                                   'AEROSTACK2_SIMULATION_DRONE_ID'),
                               description='Drone namespace'),
-        DeclareLaunchArgument('psdk_params',
+        DeclareLaunchArgument('psdk_params_file_path',
                               default_value=psdk_params_file,
-                              description='DJI PSDK configuration file')
+                              description='DJI PSDK configuration file'),
+        DeclareLaunchArgument('link_config_file_path',
+                              default_value=link_config_file,
+                              description='DJI PSDK link configuration file')
     ])
 
     # Declare Launch options
