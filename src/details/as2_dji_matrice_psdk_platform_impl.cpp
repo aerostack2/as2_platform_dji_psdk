@@ -39,6 +39,7 @@ DJIMatricePSDKPlatform_impl::DJIMatricePSDKPlatform_impl(as2::Node * node)
   landService(Land::name, node),
   setLocalPositionService(SetLocalPositionService::name, node),
   obtainCtrlAuthorityService(ObtainCtrlAuthorityService::name, node),
+  cameraSetupStreamingService(CameraSetupStreamingService::name, node),
   odom_sensor_("odom", node),
   node_(node)
 {
@@ -71,6 +72,24 @@ void DJIMatricePSDKPlatform_impl::init(rclcpp::Node * node)
     std::bind(
       &DJIMatricePSDKPlatform_impl::angular_velocity_callback, this, std::placeholders::_1));
 
+  gimbal_angle_sub_ = node->create_subscription<geometry_msgs::msg::Vector3>(
+    "gimbal_cmd", 10,
+    std::bind(&DJIMatricePSDKPlatform_impl::gimbal_angle_callback, this, std::placeholders::_1));
+
+  // Initialize the camera streaming service
+  auto request = std::make_shared<psdk_interfaces::srv::CameraSetupStreaming::Request>();
+  request->payload_index = 1;
+  request->camera_source = 0;
+  request->start_stop = 1;
+  auto response = std::make_shared<psdk_interfaces::srv::CameraSetupStreaming::Response>();
+  bool sr = cameraSetupStreamingService.sendRequest(request, response);
+  bool success = sr && response->success;
+  if (!success) {
+    RCLCPP_INFO(node->get_logger(), "Camera streaming service failed");
+  }
+
+  // Add static transfrom from psdk_base_link to base_link
+
   RCLCPP_INFO(node->get_logger(), "DJIMatricePSDKPlatform_impl initialized");
 }
 
@@ -82,12 +101,12 @@ void DJIMatricePSDKPlatform_impl::position_fused_callback(
   // Update the odometry sensor
   nav_msgs::msg::Odometry odom_msg;
 
-  odom_msg.header.stamp            = node_->now();
-  odom_msg.header.frame_id         = as2::tf::generateTfName(node_->get_namespace(), "odom");
-  odom_msg.child_frame_id          = as2::tf::generateTfName(node_->get_namespace(), "base_link");
-  odom_msg.pose.pose.position.x    = position_fused_msg_.position.x;
-  odom_msg.pose.pose.position.y    = position_fused_msg_.position.y;
-  odom_msg.pose.pose.position.z    = position_fused_msg_.position.z;
+  odom_msg.header.stamp = node_->now();
+  odom_msg.header.frame_id = as2::tf::generateTfName(node_->get_namespace(), "odom");
+  odom_msg.child_frame_id = as2::tf::generateTfName(node_->get_namespace(), "base_link");
+  odom_msg.pose.pose.position.x = position_fused_msg_.position.x;
+  odom_msg.pose.pose.position.y = position_fused_msg_.position.y;
+  odom_msg.pose.pose.position.z = position_fused_msg_.position.z;
   odom_msg.pose.pose.orientation.x = attitude_msg_.quaternion.x;
   odom_msg.pose.pose.orientation.y = attitude_msg_.quaternion.y;
   odom_msg.pose.pose.orientation.z = attitude_msg_.quaternion.z;
@@ -96,7 +115,7 @@ void DJIMatricePSDKPlatform_impl::position_fused_callback(
   // convert ENU to FLU
   Eigen::Vector3d vel_ENU =
     Eigen::Vector3d(velocity_msg_.vector.x, velocity_msg_.vector.y, velocity_msg_.vector.z);
-  auto flu_speed                = as2::frame::transform(odom_msg.pose.pose.orientation, vel_ENU);
+  auto flu_speed = as2::frame::transform(odom_msg.pose.pose.orientation, vel_ENU);
   odom_msg.twist.twist.linear.x = flu_speed.x();
   odom_msg.twist.twist.linear.y = flu_speed.y();
   odom_msg.twist.twist.linear.z = flu_speed.z();
@@ -152,9 +171,9 @@ void DJIMatricePSDKPlatform_impl::gimbal_angle_callback(
   out.time = 0.5;  // In seconds, expected time to target rotation
 
   // Angles are roll, pitch and yaw in radians
-  out.roll  = msg->x;
+  out.roll = msg->x;
   out.pitch = msg->y;
-  out.yaw   = msg->z;
+  out.yaw = msg->z;
 
   gimbalCommand.publish();
 }

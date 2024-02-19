@@ -37,9 +37,11 @@
 #include "as2_core/synchronous_service_client.hpp"
 #include "as2_core/sensor.hpp"
 #include "as2_core/utils/frame_utils.hpp"
+#include "tf2_ros/static_transform_broadcaster.h"
 #include "nav_msgs/msg/odometry.hpp"
 #include "psdk_interfaces/msg/position_fused.hpp"
 #include "psdk_interfaces/msg/gimbal_rotation.hpp"
+#include "psdk_interfaces/srv/camera_setup_streaming.hpp"
 #include "geometry_msgs/msg/quaternion_stamped.hpp"
 #include "geometry_msgs/msg/vector3_stamped.hpp"
 
@@ -50,13 +52,13 @@ namespace as2_platform_dji_psdk
 
 struct GimbalRotationCommand
 {
-  using Msg_t                    = psdk_interfaces::msg::GimbalRotation;
+  using Msg_t = psdk_interfaces::msg::GimbalRotation;
   inline static std::string name = "psdk_ros2/gimbal_rotation";
 };
 
 struct VelocityCommand
 {
-  using Msg_t                    = sensor_msgs::msg::Joy;
+  using Msg_t = sensor_msgs::msg::Joy;
   inline static std::string name = "psdk_ros2/flight_control_setpoint_ENUvelocity_yawrate";
   // TODO(stapia): Check the actual command name
 };
@@ -64,28 +66,28 @@ struct VelocityCommand
 // Service to turn motors on
 struct TurnOnMotors
 {
-  using Msg_t                    = std_srvs::srv::Trigger;
+  using Msg_t = std_srvs::srv::Trigger;
   inline static std::string name = "psdk_ros2/turn_on_motors";
 };
 
 // Service to turn motors off
 struct TurnOffMotors
 {
-  using Msg_t                    = std_srvs::srv::Trigger;
+  using Msg_t = std_srvs::srv::Trigger;
   inline static std::string name = "psdk_ros2/turn_off_motors";
 };
 
 // Service to takeoff
 struct Takeoff
 {
-  using Msg_t                    = std_srvs::srv::Trigger;
+  using Msg_t = std_srvs::srv::Trigger;
   inline static std::string name = "psdk_ros2/takeoff";
 };
 
 // Service to land
 struct Land
 {
-  using Msg_t                    = std_srvs::srv::Trigger;
+  using Msg_t = std_srvs::srv::Trigger;
   inline static std::string name = "psdk_ros2/land";
 };
 
@@ -94,14 +96,20 @@ struct Land
 // frames later
 struct SetLocalPositionService
 {
-  using Msg_t                    = std_srvs::srv::Trigger;
+  using Msg_t = std_srvs::srv::Trigger;
   inline static std::string name = "psdk_ros2/set_local_position_ref";
 };
 
 struct ObtainCtrlAuthorityService
 {
-  using Msg_t                    = std_srvs::srv::Trigger;
+  using Msg_t = std_srvs::srv::Trigger;
   inline static std::string name = "psdk_ros2/obtain_ctrl_authority";
+};
+
+struct CameraSetupStreamingService
+{
+  using Msg_t = psdk_interfaces::srv::CameraSetupStreaming;
+  inline static std::string name = "psdk_ros2/camera_setup_streaming";
 };
 
 class DJIMatricePSDKPlatform_impl
@@ -116,6 +124,7 @@ public:
   as2::SynchronousServiceClient<Land::Msg_t> landService;
   as2::SynchronousServiceClient<SetLocalPositionService::Msg_t> setLocalPositionService;
   as2::SynchronousServiceClient<ObtainCtrlAuthorityService::Msg_t> obtainCtrlAuthorityService;
+  as2::SynchronousServiceClient<CameraSetupStreamingService::Msg_t> cameraSetupStreamingService;
 
   as2::sensors::Sensor<nav_msgs::msg::Odometry> odom_sensor_;
   rclcpp::Subscription<psdk_interfaces::msg::PositionFused>::SharedPtr position_fused_sub_;
