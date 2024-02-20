@@ -40,6 +40,7 @@ DJIMatricePSDKPlatform_impl::DJIMatricePSDKPlatform_impl(as2::Node * node)
   setLocalPositionService(SetLocalPositionService::name, node),
   obtainCtrlAuthorityService(ObtainCtrlAuthorityService::name, node),
   cameraSetupStreamingService(CameraSetupStreamingService::name, node),
+  gimbalResetService(GimbalResetService::name, node),
   odom_sensor_("odom", node),
   node_(node)
 {
@@ -52,6 +53,7 @@ void DJIMatricePSDKPlatform_impl::init(rclcpp::Node * node)
 {
   velocityCommand.init(node);
   gimbalCommand.init(node);
+  gimbalStatus.init(node);
 
   // Subscribe to the odometry topic
   position_fused_sub_ = node->create_subscription<psdk_interfaces::msg::PositionFused>(
@@ -72,23 +74,46 @@ void DJIMatricePSDKPlatform_impl::init(rclcpp::Node * node)
     std::bind(
       &DJIMatricePSDKPlatform_impl::angular_velocity_callback, this, std::placeholders::_1));
 
-  gimbal_angle_sub_ = node->create_subscription<geometry_msgs::msg::Vector3>(
-    "gimbal_cmd", 10,
-    std::bind(&DJIMatricePSDKPlatform_impl::gimbal_angle_callback, this, std::placeholders::_1));
+  gimbal_control_sub_ = node->create_subscription<as2_msgs::msg::GimbalControl>(
+    "platform/gimbal/gimbal_command", 10,
+    std::bind(&DJIMatricePSDKPlatform_impl::gimbal_control_callback, this, std::placeholders::_1));
 
   // Initialize the camera streaming service
-  auto request = std::make_shared<psdk_interfaces::srv::CameraSetupStreaming::Request>();
-  request->payload_index = 1;
-  request->camera_source = 0;
-  request->start_stop = 1;
-  auto response = std::make_shared<psdk_interfaces::srv::CameraSetupStreaming::Response>();
-  bool sr = cameraSetupStreamingService.sendRequest(request, response);
-  bool success = sr && response->success;
-  if (!success) {
-    RCLCPP_INFO(node->get_logger(), "Camera streaming service failed");
+  node->declare_parameter<bool>("enbale_camera", false);
+  bool enable_camera;
+  node->get_parameter("enbale_camera", enable_camera);
+  RCLCPP_INFO(
+    node->get_logger(), "Camera streaming service: %s", enable_camera ? "enabled" : "disabled");
+  if (enable_camera) {
+    auto request = std::make_shared<psdk_interfaces::srv::CameraSetupStreaming::Request>();
+    request->payload_index = 1;
+    request->camera_source = 0;
+    request->start_stop = 1;
+    auto response = std::make_shared<psdk_interfaces::srv::CameraSetupStreaming::Response>();
+    bool sr = cameraSetupStreamingService.sendRequest(request, response);
+    bool success = sr && response->success;
+    if (!success) {
+      RCLCPP_INFO(node->get_logger(), "Camera streaming service failed");
+    }
   }
 
-  // Add static transfrom from psdk_base_link to base_link
+  // Initialize the gimbal service
+  node->declare_parameter<bool>("enable_gimbal", false);
+  bool enable_gimbal;
+  node->get_parameter("enable_gimbal", enable_gimbal);
+  RCLCPP_INFO(
+    node->get_logger(), "Gimbal reset service: %s", enable_gimbal ? "enabled" : "disabled");
+  if (enable_gimbal) {
+    auto request = std::make_shared<psdk_interfaces::srv::GimbalReset::Request>();
+    request->payload_index = 1;
+    request->reset_mode = 1;
+    auto response = std::make_shared<psdk_interfaces::srv::GimbalReset::Response>();
+    bool sr = gimbalResetService.sendRequest(request, response);
+    bool success = sr && response->success;
+    if (!success) {
+      RCLCPP_INFO(node->get_logger(), "Gimbal reset service failed");
+    }
+  }
 
   RCLCPP_INFO(node->get_logger(), "DJIMatricePSDKPlatform_impl initialized");
 }
@@ -146,36 +171,45 @@ void DJIMatricePSDKPlatform_impl::angular_velocity_callback(
   angular_velocity_msg_ = *msg.get();
 }
 
-void DJIMatricePSDKPlatform_impl::gimbal_angle_callback(
-  const geometry_msgs::msg::Vector3::SharedPtr msg)
+void DJIMatricePSDKPlatform_impl::gimbal_control_callback(
+  const as2_msgs::msg::GimbalControl::SharedPtr msg)
 {
   // gimbal angle in the wrapper is at PSDKWrapper::gimbal_rotation_cb in gimbal.cpp
   // pitch and yaw are changed in their sign
-  RCLCPP_INFO(node_->get_logger(), "Gimbal angle: %f %f %f", msg->x, msg->y, msg->z);
+  RCLCPP_INFO(
+    node_->get_logger(), "Gimbal angle: %f %f %f", msg->control.vector.x, msg->control.vector.y,
+    msg->control.vector.z);
   auto & out = gimbalCommand.msg();
-  // TODO (stapia) En OSDK era DJI::OSDK::PAYLOAD_INDEX_0 ver GimbalRotation.msg
   out.payload_index = 1;
+  out.rotation_mode = 1;  // Incremental
+  out.time = 0.5;         // In seconds, expected time to target rotation
 
-  // From dji_typedef.h:
-  // DJI_GIMBAL_ROTATION_MODE_RELATIVE_ANGLE = 0, /*!< Relative angle rotation mode, represents rotating gimbal specified angles based on current angles. */
-  // DJI_GIMBAL_ROTATION_MODE_ABSOLUTE_ANGLE = 1, /*!< Absolute angle rotation mode, represents rotating gimbal to specified angles in the ground coordinate. */
-  // DJI_GIMBAL_ROTATION_MODE_SPEED = 2, /*!< Speed rotation mode, specifies rotation speed of gimbal in the ground coordinate. */
-  out.rotation_mode = 1;
+  double desired_roll = msg->control.vector.x;
+  double desired_pitch = msg->control.vector.y;
+  double desired_yaw = msg->control.vector.z;
 
-  // From dji_typedef.h:
-  // Note: Rotation is hard fixed to DJI_GIMBAL_MODE_FREE in the wrapper, that is to ground frame
-  // DJI_GIMBAL_MODE_FREE = 0, /*!< Free mode, fix gimbal attitude in the ground coordinate, ignoring movement of aircraft. */
-  // DJI_GIMBAL_MODE_FPV = 1, /*!< FPV (First Person View) mode, only control roll and yaw angle of gimbal in the ground coordinate to follow aircraft. */
-  // DJI_GIMBAL_MODE_YAW_FOLLOW = 2, /*!< Yaw follow mode, only control yaw angle of gimbal in the ground coordinate to follow aircraft. */
+  double current_roll = gimbal_attitude_.x;
+  double current_pitch = gimbal_attitude_.y;
+  double current_yaw = gimbal_attitude_.z;
 
-  out.time = 0.5;  // In seconds, expected time to target rotation
-
-  // Angles are roll, pitch and yaw in radians
-  out.roll = msg->x;
-  out.pitch = msg->y;
-  out.yaw = msg->z;
+  if (
+    desired_roll == current_roll && desired_pitch == current_pitch && desired_yaw == current_yaw) {
+    return;
+  }
+  out.roll = desired_roll - current_roll;
+  out.pitch = desired_pitch - current_pitch;
+  out.yaw = desired_yaw - current_yaw;
 
   gimbalCommand.publish();
+
+  // Update the gimbal attitude
+  auto & gimbal_status = gimbalStatus.msg();
+  gimbal_status.header.stamp = node_->now();
+  gimbal_status.header.frame_id = as2::tf::generateTfName(node_->get_namespace(), "gimbal");
+  geometry_msgs::msg::Quaternion q;
+  as2::frame::eulerToQuaternion(desired_roll, desired_pitch, desired_yaw, q);
+  gimbal_status.quaternion = q;
+  gimbalStatus.publish();
 }
 
 }  // namespace as2_platform_dji_psdk

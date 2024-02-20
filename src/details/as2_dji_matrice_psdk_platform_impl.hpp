@@ -37,11 +37,13 @@
 #include "as2_core/synchronous_service_client.hpp"
 #include "as2_core/sensor.hpp"
 #include "as2_core/utils/frame_utils.hpp"
+#include "as2_msgs/msg/gimbal_control.hpp"
 #include "tf2_ros/static_transform_broadcaster.h"
 #include "nav_msgs/msg/odometry.hpp"
 #include "psdk_interfaces/msg/position_fused.hpp"
 #include "psdk_interfaces/msg/gimbal_rotation.hpp"
 #include "psdk_interfaces/srv/camera_setup_streaming.hpp"
+#include "psdk_interfaces/srv/gimbal_reset.hpp"
 #include "geometry_msgs/msg/quaternion_stamped.hpp"
 #include "geometry_msgs/msg/vector3_stamped.hpp"
 
@@ -49,12 +51,6 @@
 
 namespace as2_platform_dji_psdk
 {
-
-struct GimbalRotationCommand
-{
-  using Msg_t = psdk_interfaces::msg::GimbalRotation;
-  inline static std::string name = "psdk_ros2/gimbal_rotation";
-};
 
 struct VelocityCommand
 {
@@ -112,11 +108,30 @@ struct CameraSetupStreamingService
   inline static std::string name = "psdk_ros2/camera_setup_streaming";
 };
 
+struct GimbalResetService
+{
+  using Msg_t = psdk_interfaces::srv::GimbalReset;
+  inline static std::string name = "psdk_ros2/gimbal_reset";
+};
+
+struct GimbalStatus
+{
+  using Msg_t = geometry_msgs::msg::QuaternionStamped;
+  inline static std::string name = "sensor_measurements/gimbal/attitude";
+};
+
+struct GimbalRotationCommand
+{
+  using Msg_t = psdk_interfaces::msg::GimbalRotation;
+  inline static std::string name = "psdk_ros2/gimbal_rotation";
+};
+
 class DJIMatricePSDKPlatform_impl
 {
 public:
   Output<VelocityCommand> velocityCommand;
   Output<GimbalRotationCommand> gimbalCommand;
+  Output<GimbalStatus> gimbalStatus;
 
   as2::SynchronousServiceClient<TurnOnMotors::Msg_t> turnOnMotorsService;
   as2::SynchronousServiceClient<TurnOffMotors::Msg_t> turnOffMotorsService;
@@ -125,24 +140,26 @@ public:
   as2::SynchronousServiceClient<SetLocalPositionService::Msg_t> setLocalPositionService;
   as2::SynchronousServiceClient<ObtainCtrlAuthorityService::Msg_t> obtainCtrlAuthorityService;
   as2::SynchronousServiceClient<CameraSetupStreamingService::Msg_t> cameraSetupStreamingService;
+  as2::SynchronousServiceClient<GimbalResetService::Msg_t> gimbalResetService;
 
   as2::sensors::Sensor<nav_msgs::msg::Odometry> odom_sensor_;
   rclcpp::Subscription<psdk_interfaces::msg::PositionFused>::SharedPtr position_fused_sub_;
   rclcpp::Subscription<geometry_msgs::msg::QuaternionStamped>::SharedPtr attitude_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr velocity_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr angular_velocity_sub_;
-  rclcpp::Subscription<geometry_msgs::msg::Vector3>::SharedPtr gimbal_angle_sub_;
+  rclcpp::Subscription<as2_msgs::msg::GimbalControl>::SharedPtr gimbal_control_sub_;
 
   void position_fused_callback(const psdk_interfaces::msg::PositionFused::SharedPtr msg);
   void attitude_callback(const geometry_msgs::msg::QuaternionStamped::SharedPtr msg);
   void velocity_callback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
   void angular_velocity_callback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
-  void gimbal_angle_callback(const geometry_msgs::msg::Vector3::SharedPtr msg);
+  void gimbal_control_callback(const as2_msgs::msg::GimbalControl::SharedPtr msg);
 
   psdk_interfaces::msg::PositionFused position_fused_msg_;
   geometry_msgs::msg::QuaternionStamped attitude_msg_;
   geometry_msgs::msg::Vector3Stamped velocity_msg_;
   geometry_msgs::msg::Vector3Stamped angular_velocity_msg_;
+  geometry_msgs::msg::Vector3 gimbal_attitude_;
 
   as2::Node * node_;
 

@@ -2,3 +2,5 @@
   ros__parameters:
     cmd_freq: 30.0  # Hz (default: 100.0)
     info_freq: 10.0  # Hz (default: 10.0)
+    enbale_camera: false  # (default: false)
+    enable_gimbal: false  # (default: false)
