@@ -31,6 +31,11 @@ def generate_launch_description():
         'config', 'link_config.json'
     ])
 
+    hms_return_codes_file = PathJoinSubstitution([
+        FindPackageShare('as2_platform_dji_psdk'),
+        'config', 'hms_2023_08_22.json'
+    ])
+
     # Prepare the wrapper node
     wrapper_node = LifecycleNode(
         package="psdk_wrapper",
@@ -42,6 +47,7 @@ def generate_launch_description():
         parameters=[
             {
                 "link_config_file_path": LaunchConfiguration('link_config_file_path'),
+                "hms_return_codes_path": LaunchConfiguration('hms_return_codes_path'),
             },
             LaunchConfiguration('psdk_params_file_path'),
         ],
@@ -78,7 +84,10 @@ def generate_launch_description():
                               description='DJI PSDK configuration file'),
         DeclareLaunchArgument('link_config_file_path',
                               default_value=link_config_file,
-                              description='DJI PSDK link configuration file')
+                              description='DJI PSDK link configuration file'),
+        DeclareLaunchArgument('hms_return_codes_path',
+                              default_value=hms_return_codes_file,
+                              description='Path to JSON file with known DJI return codes')
     ])
 
     # Declare Launch options

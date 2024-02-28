@@ -174,42 +174,39 @@ void DJIMatricePSDKPlatform_impl::angular_velocity_callback(
 void DJIMatricePSDKPlatform_impl::gimbal_control_callback(
   const as2_msgs::msg::GimbalControl::SharedPtr msg)
 {
-  // gimbal angle in the wrapper is at PSDKWrapper::gimbal_rotation_cb in gimbal.cpp
-  // pitch and yaw are changed in their sign
+
   RCLCPP_INFO(
-    node_->get_logger(), "Gimbal angle: %f %f %f", msg->control.vector.x, msg->control.vector.y,
-    msg->control.vector.z);
-  auto & out = gimbalCommand.msg();
-  out.payload_index = 1;
-  out.rotation_mode = 1;  // Incremental
-  out.time = 0.5;         // In seconds, expected time to target rotation
+    node_->get_logger(), "Gimbal angle: %f %f %f", msg->target.vector.x, msg->target.vector.y,
+    msg->target.vector.z);
 
-  double desired_roll = msg->control.vector.x;
-  double desired_pitch = msg->control.vector.y;
-  double desired_yaw = msg->control.vector.z;
+    auto & out = gimbalCommand.msg();
+    out.payload_index = 1;
+    
+    switch (msg->control_mode) {
+      case as2_msgs::msg::GimbalControl::POSITION_MODE:
+        out.rotation_mode = 1;  // Absolute
+        break;
+      case as2_msgs::msg::GimbalControl::SPEED_MODE:
+        out.rotation_mode = 2;  // Speed
+        break;
+      default:
+        RCLCPP_ERROR(node_->get_logger(), "Gimbal control mode not supported");
+        break;
+    }
 
-  double current_roll = gimbal_attitude_.x;
-  double current_pitch = gimbal_attitude_.y;
-  double current_yaw = gimbal_attitude_.z;
+    out.rotation_mode = 2;  // Absolute
+    out.time = 0.5;         // In seconds, expected time to target rotation
 
-  if (
-    desired_roll == current_roll && desired_pitch == current_pitch && desired_yaw == current_yaw) {
-    return;
-  }
-  out.roll = desired_roll - current_roll;
-  out.pitch = desired_pitch - current_pitch;
-  out.yaw = desired_yaw - current_yaw;
+    double desired_roll = msg->target.vector.x;
+    double desired_pitch = msg->target.vector.y;
+    double desired_yaw = msg->target.vector.z;
 
-  gimbalCommand.publish();
+    out.roll = desired_roll;
+    out.pitch = desired_pitch;
+    out.yaw = desired_yaw;
 
-  // Update the gimbal attitude
-  auto & gimbal_status = gimbalStatus.msg();
-  gimbal_status.header.stamp = node_->now();
-  gimbal_status.header.frame_id = as2::tf::generateTfName(node_->get_namespace(), "gimbal");
-  geometry_msgs::msg::Quaternion q;
-  as2::frame::eulerToQuaternion(desired_roll, desired_pitch, desired_yaw, q);
-  gimbal_status.quaternion = q;
-  gimbalStatus.publish();
+    gimbalCommand.publish();
+
 }
 
 }  // namespace as2_platform_dji_psdk
