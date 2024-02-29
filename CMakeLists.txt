@@ -37,35 +37,23 @@ include_directories(
 
 # Set source files
 set(SOURCE_CPP_FILES
-  src/as2_platform_dji_psdk.cpp
-  src/details/as2_dji_matrice_psdk_platform_impl.cpp
+  src/${PROJECT_NAME}_node.cpp
+  src/${PROJECT_NAME}.cpp
 )
 
-# Create the node dynamic library
+# Create the node executable
+add_executable(${PROJECT_NAME}_node ${SOURCE_CPP_FILES})
+ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
+
+# Create the dynamic library
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
-target_precompile_headers(${PROJECT_NAME}
-  PRIVATE
-  [["rclcpp/rclcpp.hpp"]]
-)
 
 # Set the public include directories for the library
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-
-# Create the node executable
-add_executable(${PROJECT_NAME}_node
-  src/${PROJECT_NAME}_node.cpp # main file
-
-  # ${SOURCE_CPP_FILES} # rest of files
-)
-target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
-ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
-target_precompile_headers(${PROJECT_NAME}_node
-  PRIVATE
-  [["rclcpp/rclcpp.hpp"]]
-)
 
 # Install the headers
 install(
@@ -114,9 +102,7 @@ if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 
-  # TODO(cvar): We need a mock of the psdk_ros2 package to run automatic tests
-  # Disable tests
-  # add_subdirectory(tests)
+  add_subdirectory(tests)
 endif()
 
 # Create the ament package

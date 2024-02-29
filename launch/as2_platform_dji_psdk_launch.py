@@ -41,7 +41,7 @@ def generate_launch_description():
     ])
 
     control_modes = PathJoinSubstitution([
-        FindPackageShare('as2_platform_dji_psdk'),
+        FindPackageShare('as2_multirotor_simulator'),
         'config', 'control_modes.yaml'
     ])
 
@@ -59,7 +59,7 @@ def generate_launch_description():
         Node(
             package="as2_platform_dji_psdk",
             executable="as2_platform_dji_psdk_node",
-            name="platform",
+            name="as2_platform_dji_psdk",
             namespace=LaunchConfiguration('namespace'),
             output="screen",
             emulate_tty=True,

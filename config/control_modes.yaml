@@ -39,7 +39,7 @@
 #-----------------------------------------------------------------
 
 available_modes:
-  # - 0b00000000 # UNSET
+  - 0b00000000 # UNSET
   - 0b00010000 # HOVER
   # - 0b00100100 # ACRO (p,q,r, Thrust)
   # - 0b00110001 # ATTITUDE with yaw ANGLE ( r,p,y , Thrust) 

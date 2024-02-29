@@ -27,160 +27,391 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 #include "as2_platform_dji_psdk.hpp"
-#include "details/as2_dji_matrice_psdk_platform_impl.hpp"
 
 namespace as2_platform_dji_psdk
 {
 
 DJIMatricePSDKPlatform::DJIMatricePSDKPlatform(const rclcpp::NodeOptions & options)
-: as2::AerialPlatform(options)
+: as2::AerialPlatform(options),
+  tf_handler_(this)
 {
-  RCLCPP_INFO(this->get_logger(), "Initializing DJI Matrice PSDK platform");
-  _impl = std::make_shared<DJIMatricePSDKPlatform_impl>(this);
-  configureSensors();
+  // Create publishers
+  velocity_command_pub_ = this->create_publisher<sensor_msgs::msg::Joy>(
+    "psdk_ros2/flight_control_setpoint_ENUvelocity_yawrate", 10);
+
+  gimbal_rotation_pub_ =
+    this->create_publisher<psdk_interfaces::msg::GimbalRotation>("psdk_ros2/gimbal_rotation", 10);
+
+  gimbal_attitude_pub_ = this->create_publisher<geometry_msgs::msg::QuaternionStamped>(
+    "sensor_measurements/gimbal/attitude", 10);
+
+  // Create subscriptions
+  position_fused_sub_ = this->create_subscription<psdk_interfaces::msg::PositionFused>(
+    "psdk_ros2/position_fused", 10,
+    std::bind(&DJIMatricePSDKPlatform::position_fused_callback, this, std::placeholders::_1));
+
+  attitude_sub_ = this->create_subscription<geometry_msgs::msg::QuaternionStamped>(
+    "psdk_ros2/attitude", 10,
+    std::bind(&DJIMatricePSDKPlatform::attitude_callback, this, std::placeholders::_1));
+
+  velocity_sub_ = this->create_subscription<geometry_msgs::msg::Vector3Stamped>(
+    "psdk_ros2/velocity", 10,
+    std::bind(&DJIMatricePSDKPlatform::velocity_callback, this, std::placeholders::_1));
+
+  gimbal_control_sub_ = this->create_subscription<as2_msgs::msg::GimbalControl>(
+    "platform/gimbal/gimbal_command", 10,
+    std::bind(&DJIMatricePSDKPlatform::gimbal_control_callback, this, std::placeholders::_1));
+
+  // Create services
+  turn_on_motors_srv_ = std::make_shared<as2::SynchronousServiceClient<std_srvs::srv::Trigger>>(
+    "psdk_ros2/turn_on_motors", this);
+
+  turn_off_motors_srv_ = std::make_shared<as2::SynchronousServiceClient<std_srvs::srv::Trigger>>(
+    "psdk_ros2/turn_off_motors", this);
+
+  takeoff_srv_ = std::make_shared<as2::SynchronousServiceClient<std_srvs::srv::Trigger>>(
+    "psdk_ros2/takeoff", this);
+
+  land_srv_ =
+    std::make_shared<as2::SynchronousServiceClient<std_srvs::srv::Trigger>>("psdk_ros2/land", this);
+
+  set_local_position_srv_ = std::make_shared<as2::SynchronousServiceClient<std_srvs::srv::Trigger>>(
+    "psdk_ros2/set_local_position_ref", this);
+
+  obtain_ctrl_authority_srv_ =
+    std::make_shared<as2::SynchronousServiceClient<std_srvs::srv::Trigger>>(
+    "psdk_ros2/obtain_ctrl_authority", this);
+
+  release_ctrl_authority_srv_ =
+    std::make_shared<as2::SynchronousServiceClient<std_srvs::srv::Trigger>>(
+    "psdk_ros2/release_ctrl_authority", this);
+
+  camera_setup_streaming_srv_ =
+    std::make_shared<as2::SynchronousServiceClient<psdk_interfaces::srv::CameraSetupStreaming>>(
+    "psdk_ros2/camera_setup_streaming", this);
+
+  gimbal_reset_srv_ =
+    std::make_shared<as2::SynchronousServiceClient<psdk_interfaces::srv::GimbalReset>>(
+    "psdk_ros2/gimbal_reset", this);
 }
 
-void DJIMatricePSDKPlatform::configureSensors() { 
-  RCLCPP_INFO(this->get_logger(), "Configuring sensors");
-  _impl->init(this); }
+void DJIMatricePSDKPlatform::configureSensors()
+{
+  // Create sensors
+  sensor_odom_ptr_ = std::make_unique<as2::sensors::Sensor<nav_msgs::msg::Odometry>>("odom", this);
+
+  // Initialize the camera streaming service
+  this->declare_parameter<bool>("enbale_camera", false);
+  bool enable_camera;
+  this->get_parameter("enbale_camera", enable_camera);
+  RCLCPP_INFO(
+    this->get_logger(), "Camera streaming service: %s", enable_camera ? "enabled" : "disabled");
+  if (enable_camera) {
+    auto request = std::make_shared<psdk_interfaces::srv::CameraSetupStreaming::Request>();
+    request->payload_index = 1;
+    request->camera_source = 0;
+    request->start_stop = 1;
+    auto response = std::make_shared<psdk_interfaces::srv::CameraSetupStreaming::Response>();
+    bool result = camera_setup_streaming_srv_->sendRequest(request, response);
+    bool success = result && response->success;
+    if (!success) {
+      RCLCPP_INFO(this->get_logger(), "Could not start camera streaming");
+    }
+  }
+
+  // Initialize the gimbal service
+  this->declare_parameter<bool>("enable_gimbal", false);
+  bool enable_gimbal;
+  this->get_parameter("enable_gimbal", enable_gimbal);
+  RCLCPP_INFO(
+    this->get_logger(), "Gimbal reset service: %s", enable_gimbal ? "enabled" : "disabled");
+  if (enable_gimbal) {
+    auto request = std::make_shared<psdk_interfaces::srv::GimbalReset::Request>();
+    request->payload_index = 1;
+    request->reset_mode = 1;
+    auto response = std::make_shared<psdk_interfaces::srv::GimbalReset::Response>();
+    bool result = gimbal_reset_srv_->sendRequest(request, response);
+    bool success = result && response->success;
+    if (!success) {
+      RCLCPP_INFO(this->get_logger(), "Could not reset gimbal");
+    }
+  }
+}
 
 bool DJIMatricePSDKPlatform::ownSetArmingState(bool state)
 {
-  // TODO: (stapia) ¿Fijar la posición va antes o después de arrancar motores?
-  // Set Local Position at the begining of flight
-  auto request  = std::make_shared<std_srvs::srv::Trigger::Request>();
+  auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
   auto response = std::make_shared<std_srvs::srv::Trigger::Response>();
-  bool sr       = _impl->setLocalPositionService.sendRequest(request, response);
-  bool success  = sr && response->success;
+  bool result = set_local_position_srv_->sendRequest(request, response);
+  bool success = result && response->success;
   if (!success) {
     RCLCPP_INFO(
-      this->get_logger(), "Send request was not succeed due to '%s'", response->message.data());
-    return success;
+      this->get_logger(), "Could not set local position reference due to '%s'",
+      response->message.data());
   }
-  // // Turn on motors
-  // sr      = _impl->turnOnMotorsService.sendRequest(request, response);
-  // success = sr && response->success;
-  // if (!success) {
-  //   RCLCPP_INFO(
-  //     this->get_logger(), "Send request was not succeed due to '%s'", response->message.data());
-  //   return success;
-  // }
   return success;
 }
 
 bool DJIMatricePSDKPlatform::ownSetOffboardControl(bool offboard)
 {
-  // // Turn on motors
-  // auto request  = std::make_shared<std_srvs::srv::Trigger::Request>();
-  // auto response = std::make_shared<std_srvs::srv::Trigger::Response>();
-  // bool sr       = _impl->turnOffMotorsService.sendRequest(request, response);
-  // bool success  = sr && response->success;
-  // if (!success) {
-  //   RCLCPP_INFO(
-  //     this->get_logger(), "Send request was not succeed due to '%s'", response->message.data());
-  //   return success;
-  // }
-  // return success;
+  if (!offboard) {
+    // Release control authority
+    set_control_authority(false);
+  }
   return true;
 }
 
 bool DJIMatricePSDKPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg)
 {
-   RCLCPP_INFO(
-      this->get_logger(), "Setting control mode to %d", msg.control_mode);
-  // Obtain control authority
-  // TODO: (stapia) ¿Dónde hay que soltar la autorización?
-  auto request  = std::make_shared<std_srvs::srv::Trigger::Request>();
+  RCLCPP_INFO(this->get_logger(), "Setting control mode to %d", msg.control_mode);
+  bool success = false;
+  auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
   auto response = std::make_shared<std_srvs::srv::Trigger::Response>();
-  bool sr       = _impl->obtainCtrlAuthorityService.sendRequest(request, response);
-  bool success  = sr && response->success;
-  if (!success) {
-    RCLCPP_INFO(
-      this->get_logger(), "Send request was not succeed due to '%s'", response->message.data());
-    return success;
+  switch (msg.control_mode) {
+    case as2_msgs::msg::ControlMode::UNSET:
+      {
+        // Release control authority
+        set_control_authority(false);
+        break;
+      }
+    case as2_msgs::msg::ControlMode::HOVER:
+    case as2_msgs::msg::ControlMode::SPEED:
+      {
+        // Obtain control authority
+        set_control_authority(true);
+        break;
+      }
+    default:
+      RCLCPP_ERROR(this->get_logger(), "Control mode not supported");
+      break;
   }
-  // Note: Since velocity command in psdk wrapper already has the configuration of mode and
-  // command sending there is no need to store anything else.
   return success;
 }
 
 bool DJIMatricePSDKPlatform::ownSendCommand()
 {
-  if (platform_info_msg_.current_control_mode.control_mode == as2_msgs::msg::ControlMode::HOVER) {
-    // send all zeros
-    _impl->velocityCommand.msg().axes[0] = 0.0f;  // x(m)
-    _impl->velocityCommand.msg().axes[1] = 0.0f;
-    _impl->velocityCommand.msg().axes[2] = 0.0f;
-    _impl->velocityCommand.msg().axes[3] = 0.0f;  // yaw (rad)
-    _impl->velocityCommand.publish();
-    return true;
-  }
-  // Check whether is a new input for joystick command
-  if (!this->has_new_references_) {
-    RCLCPP_DEBUG_THROTTLE(
-      this->get_logger(), *this->get_clock(), 1000, "No new references since mode change");
-    return true;
-  }
+  sensor_msgs::msg::Joy velocity_command;
+  velocity_command.axes.resize(4);
 
-  switch (platform_info_msg_.current_control_mode.control_mode) {
-    // case as2_msgs::msg::ControlMode::POSITION: {
-    // } break;
+  as2_msgs::msg::ControlMode current_control_mode;
+  current_control_mode = getControlMode();
+
+  switch (current_control_mode.control_mode) {
+    case as2_msgs::msg::ControlMode::UNSET:
+      {
+        return true;
+      }
+    case as2_msgs::msg::ControlMode::HOVER:
+      {
+        velocity_command.axes[0] = 0.0;  //
+        velocity_command.axes[1] = 0.0;
+        velocity_command.axes[2] = 0.0;
+        break;
+      }
     case as2_msgs::msg::ControlMode::SPEED:
       {
-        // Conversion from AS2 ENU frame into DJI NEU frame already done inside psdk wrapper
-        _impl->velocityCommand.msg().axes[0] = this->command_twist_msg_.twist.linear.x;
-        _impl->velocityCommand.msg().axes[1] = this->command_twist_msg_.twist.linear.y;
-        _impl->velocityCommand.msg().axes[2] = this->command_twist_msg_.twist.linear.z;
-        _impl->velocityCommand.msg().axes[3] = this->command_twist_msg_.twist.angular.z;
-        _impl->velocityCommand.publish();
+        velocity_command.axes[0] = command_twist_msg_.twist.linear.x;  // X velocity (m/s)
+        velocity_command.axes[1] = command_twist_msg_.twist.linear.y;  // Y velocity (m/s)
+        velocity_command.axes[2] = command_twist_msg_.twist.linear.z;  // Z velocity (m/s)
+        break;
       }
-      break;
-    // case as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE: {
-    // } break;
-    // case as2_msgs::msg::ControlMode::ACRO: {
-    // } break;
     default:
-      RCLCPP_ERROR(this->get_logger(), "Unknown control mode in send command");
+      RCLCPP_ERROR(this->get_logger(), "Control mode not supported");
       return false;
   }
+
+  switch (current_control_mode.yaw_mode) {
+    case as2_msgs::msg::ControlMode::YAW_ANGLE:
+      {
+        velocity_command.axes[3] = command_twist_msg_.twist.angular.z;  // Yaw rate (rad/s)
+        break;
+      }
+    default:
+      RCLCPP_ERROR(this->get_logger(), "Yaw mode not supported");
+      return false;
+  }
+
+  velocity_command_pub_->publish(velocity_command);
   return true;
 }
 
 void DJIMatricePSDKPlatform::ownStopPlatform()
 {
-  platform_info_msg_.current_control_mode.control_mode = as2_msgs::msg::ControlMode::HOVER;
+  // Send hover to platform here
+  set_control_authority(false);
 }
 
 void DJIMatricePSDKPlatform::ownKillSwitch()
 {
   // Send kill switch to platform here
-  // TODO: (stapia) ¿Qué hay que hacer aquí?
+  set_control_authority(false);
 }
 
 bool DJIMatricePSDKPlatform::ownTakeoff()
 {
-  auto request  = std::make_shared<std_srvs::srv::Trigger::Request>();
+  // Send takeoff to platform here
+  auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
   auto response = std::make_shared<std_srvs::srv::Trigger::Response>();
-  RCLCPP_INFO(this->get_logger(), "Takeoff request sent");
-  bool sr       = _impl->takeoffService.sendRequest(request, response);
-  bool success  = sr && response->success;
-  // TODO: (stapia) Meter delay para esperar a takeoff (10s)
+  RCLCPP_INFO(this->get_logger(), "Sending takeoff");
+  bool result = takeoff_srv_->sendRequest(request, response);
+  bool success = success && response->success;
   if (!success) {
-    RCLCPP_INFO(
-      this->get_logger(), "Send request was not succeed due to '%s'", response->message.data());
+    RCLCPP_INFO(this->get_logger(), "Could not takeoff due to '%s'", response->message.data());
   }
   return success;
 }
 
 bool DJIMatricePSDKPlatform::ownLand()
 {
-  auto request  = std::make_shared<std_srvs::srv::Trigger::Request>();
+  // Send land to platform here
+  auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
   auto response = std::make_shared<std_srvs::srv::Trigger::Response>();
-  bool sr       = _impl->landService.sendRequest(request, response);
-  bool success  = sr && response->success;
+  RCLCPP_INFO(this->get_logger(), "Sending land");
+  bool result = land_srv_->sendRequest(request, response);
+  bool success = success && response->success;
   if (!success) {
-    RCLCPP_INFO(
-      this->get_logger(), "Send request was not succeed due to '%s'", response->message.data());
+    RCLCPP_INFO(this->get_logger(), "Could not land due to '%s'", response->message.data());
+  }
+  return success;
+}
+
+void DJIMatricePSDKPlatform::position_fused_callback(
+  const psdk_interfaces::msg::PositionFused::SharedPtr msg)
+{
+  // Update the odometry sensor
+  nav_msgs::msg::Odometry odom_msg;
+
+  odom_msg.header.stamp = msg->header.stamp;
+  odom_msg.header.frame_id = as2::tf::generateTfName(this->get_namespace(), "odom");
+  odom_msg.child_frame_id = as2::tf::generateTfName(this->get_namespace(), "base_link");
+  odom_msg.pose.pose.position.x = msg->position.x;
+  odom_msg.pose.pose.position.y = msg->position.y;
+  odom_msg.pose.pose.position.z = msg->position.z;
+  odom_msg.pose.pose.orientation.x = current_attitude_.x;
+  odom_msg.pose.pose.orientation.y = current_attitude_.y;
+  odom_msg.pose.pose.orientation.z = current_attitude_.z;
+  odom_msg.pose.pose.orientation.w = current_attitude_.w;
+
+  // convert ENU to FLU
+  Eigen::Vector3d vel_ENU = Eigen::Vector3d(
+    current_lineal_velocity_.x, current_lineal_velocity_.y, current_lineal_velocity_.z);
+  auto flu_speed = as2::frame::transform(odom_msg.pose.pose.orientation, vel_ENU);
+  odom_msg.twist.twist.linear.x = flu_speed.x();
+  odom_msg.twist.twist.linear.y = flu_speed.y();
+  odom_msg.twist.twist.linear.z = flu_speed.z();
+
+  odom_msg.twist.twist.angular.x = current_angular_velocity_.x;
+  odom_msg.twist.twist.angular.y = current_angular_velocity_.y;
+  odom_msg.twist.twist.angular.z = current_angular_velocity_.z;
+
+  sensor_odom_ptr_->updateData(odom_msg);
+}
+
+void DJIMatricePSDKPlatform::attitude_callback(
+  const geometry_msgs::msg::QuaternionStamped::SharedPtr msg)
+{
+  current_attitude_ = msg->quaternion;
+}
+
+void DJIMatricePSDKPlatform::velocity_callback(
+  const geometry_msgs::msg::Vector3Stamped::SharedPtr msg)
+{
+  current_lineal_velocity_ = msg->vector;
+}
+
+void DJIMatricePSDKPlatform::angular_velocity_callback(
+  const geometry_msgs::msg::Vector3Stamped::SharedPtr msg)
+{
+  current_angular_velocity_ = msg->vector;
+}
+
+void DJIMatricePSDKPlatform::gimbal_control_callback(
+  const as2_msgs::msg::GimbalControl::SharedPtr msg)
+{
+  RCLCPP_INFO(
+    this->get_logger(), "Gimbal angle: %f %f %f", msg->target.vector.x, msg->target.vector.y,
+    msg->target.vector.z);
+
+  psdk_interfaces::msg::GimbalRotation gimbal_rotation;
+  gimbal_rotation.payload_index = 1;  // Main payload
+
+  switch (msg->control_mode) {
+    case as2_msgs::msg::GimbalControl::POSITION_MODE:
+      gimbal_rotation.rotation_mode = 1;  // Absolute
+      break;
+    case as2_msgs::msg::GimbalControl::SPEED_MODE:
+      gimbal_rotation.rotation_mode = 2;  // Speed
+      break;
+    default:
+      RCLCPP_ERROR(this->get_logger(), "Gimbal control mode not supported");
+      break;
+  }
+
+  gimbal_rotation.time = 0.5;  // In seconds, expected time to target rotation
+
+  // Desired roll, pitch and yaw in base_link frame
+  geometry_msgs::msg::QuaternionStamped desired_base_link_orientation;
+  desired_base_link_orientation.header.stamp = msg->target.header.stamp;
+  desired_base_link_orientation.header.frame_id =
+    as2::tf::generateTfName(this->get_namespace(), "base_link");
+  as2::frame::eulerToQuaternion(
+    msg->target.vector.x, msg->target.vector.y, msg->target.vector.z,
+    desired_base_link_orientation.quaternion);
+
+  // Transform desired orientation to earth frame
+  geometry_msgs::msg::QuaternionStamped desired_earth_orientation;
+  desired_earth_orientation = tf_handler_.convert(desired_base_link_orientation, "earth");
+
+  // Transform from earth in ENU to NWU frame (90º rotation around z axis)
+  double roll = 0.0;
+  double pitch = 0.0;
+  double yaw = M_PI_2;
+  tf2::Quaternion q_enu_nwu;
+  q_enu_nwu.setRPY(roll, pitch, yaw);
+  tf2::Quaternion q_enu = tf2::Quaternion(
+    desired_earth_orientation.quaternion.x, desired_earth_orientation.quaternion.y,
+    desired_earth_orientation.quaternion.z, desired_earth_orientation.quaternion.w);
+  tf2::Quaternion q_nwu = q_enu_nwu * q_enu;
+
+  // Publish the desired orientation in NWU frame
+  double desired_roll, desired_pitch, desired_yaw;
+  tf2::Matrix3x3(q_nwu).getRPY(desired_roll, desired_pitch, desired_yaw);
+
+  gimbal_rotation.roll = desired_roll;
+  gimbal_rotation.pitch = desired_pitch;
+  gimbal_rotation.yaw = desired_yaw;
+
+  gimbal_rotation_pub_->publish(gimbal_rotation);
+}
+
+bool DJIMatricePSDKPlatform::set_control_authority(bool state)
+{
+  bool success = false;
+  auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+  auto response = std::make_shared<std_srvs::srv::Trigger::Response>();
+
+  if (state) {
+    // Obtain control authority
+    RCLCPP_INFO(this->get_logger(), "Sending obtain control authority");
+    bool result = obtain_ctrl_authority_srv_->sendRequest(request, response);
+    success = result && response->success;
+    if (!success) {
+      RCLCPP_INFO(
+        this->get_logger(), "Could not obtain control authority due to '%s'",
+        response->message.data());
+      return success;
+    }
+
+  } else {
+    // Release control authority
+    RCLCPP_INFO(this->get_logger(), "Sending release control authority");
+    bool result = release_ctrl_authority_srv_->sendRequest(request, response);
+    success = result && response->success;
+    if (!success) {
+      RCLCPP_INFO(
+        this->get_logger(), "Could not release control authority due to '%s'",
+        response->message.data());
+    }
   }
   return success;
 }
