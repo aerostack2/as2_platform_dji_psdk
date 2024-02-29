@@ -49,6 +49,8 @@
 #include "geometry_msgs/msg/quaternion_stamped.hpp"
 #include "geometry_msgs/msg/vector3_stamped.hpp"
 
+#define GIMBAL_COMMAND_TIME 0.5
+
 namespace as2_platform_dji_psdk
 {
 
@@ -77,6 +79,7 @@ private:
   geometry_msgs::msg::Quaternion current_attitude_;
   geometry_msgs::msg::Vector3 current_lineal_velocity_;
   geometry_msgs::msg::Vector3 current_angular_velocity_;
+  rclcpp::Time last_gimbal_command_time_;
 
   // Publishers
   rclcpp::Publisher<sensor_msgs::msg::Joy>::SharedPtr velocity_command_pub_;

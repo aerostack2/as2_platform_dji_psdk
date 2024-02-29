@@ -93,12 +93,16 @@ DJIMatricePSDKPlatform::DJIMatricePSDKPlatform(const rclcpp::NodeOptions & optio
   gimbal_reset_srv_ =
     std::make_shared<as2::SynchronousServiceClient<psdk_interfaces::srv::GimbalReset>>(
     "psdk_ros2/gimbal_reset", this);
+
+  RCLCPP_INFO(this->get_logger(), "DJIMatricePSDKPlatform initialized");
 }
 
 void DJIMatricePSDKPlatform::configureSensors()
 {
+  RCLCPP_INFO(this->get_logger(), "DJIMatricePSDKPlatform sensors configuring");
   // Create sensors
   sensor_odom_ptr_ = std::make_unique<as2::sensors::Sensor<nav_msgs::msg::Odometry>>("odom", this);
+  RCLCPP_INFO(this->get_logger(), "DJIMatricePSDKPlatform odometry sensor configured");
 
   // Initialize the camera streaming service
   this->declare_parameter<bool>("enbale_camera", false);
@@ -111,6 +115,7 @@ void DJIMatricePSDKPlatform::configureSensors()
     request->payload_index = 1;
     request->camera_source = 0;
     request->start_stop = 1;
+    RCLCPP_INFO(this->get_logger(), "Starting camera streaming");
     auto response = std::make_shared<psdk_interfaces::srv::CameraSetupStreaming::Response>();
     bool result = camera_setup_streaming_srv_->sendRequest(request, response);
     bool success = result && response->success;
@@ -130,12 +135,16 @@ void DJIMatricePSDKPlatform::configureSensors()
     request->payload_index = 1;
     request->reset_mode = 1;
     auto response = std::make_shared<psdk_interfaces::srv::GimbalReset::Response>();
+    RCLCPP_INFO(this->get_logger(), "Resetting gimbal");
     bool result = gimbal_reset_srv_->sendRequest(request, response);
     bool success = result && response->success;
     if (!success) {
       RCLCPP_INFO(this->get_logger(), "Could not reset gimbal");
     }
   }
+  last_gimbal_command_time_ = this->now();
+
+  RCLCPP_INFO(this->get_logger(), "DJIMatricePSDKPlatform sensors configured");
 }
 
 bool DJIMatricePSDKPlatform::ownSetArmingState(bool state)
@@ -328,6 +337,12 @@ void DJIMatricePSDKPlatform::angular_velocity_callback(
 void DJIMatricePSDKPlatform::gimbal_control_callback(
   const as2_msgs::msg::GimbalControl::SharedPtr msg)
 {
+  double time_diff = (this->now() - last_gimbal_command_time_).seconds();
+  if (time_diff < GIMBAL_COMMAND_TIME) {
+    // Wait for the gimbal to reach the desired position
+    return;
+  }
+
   RCLCPP_INFO(
     this->get_logger(), "Gimbal angle: %f %f %f", msg->target.vector.x, msg->target.vector.y,
     msg->target.vector.z);
@@ -347,7 +362,7 @@ void DJIMatricePSDKPlatform::gimbal_control_callback(
       break;
   }
 
-  gimbal_rotation.time = 0.5;  // In seconds, expected time to target rotation
+  gimbal_rotation.time = GIMBAL_COMMAND_TIME;  // In seconds, expected time to target rotation
 
   // Desired roll, pitch and yaw in base_link frame
   geometry_msgs::msg::QuaternionStamped desired_base_link_orientation;
@@ -360,28 +375,19 @@ void DJIMatricePSDKPlatform::gimbal_control_callback(
 
   // Transform desired orientation to earth frame
   geometry_msgs::msg::QuaternionStamped desired_earth_orientation;
-  desired_earth_orientation = tf_handler_.convert(desired_base_link_orientation, "earth");
+  std::string target_frame = "earth";  // Earth frame
+  desired_earth_orientation = tf_handler_.convert(desired_base_link_orientation, target_frame);
+  double desired_roll_earth, desired_pitch_earth, desired_yaw_earth;
+  as2::frame::quaternionToEuler(
+    desired_earth_orientation.quaternion, desired_roll_earth, desired_pitch_earth,
+    desired_yaw_earth);
 
-  // Transform from earth in ENU to NWU frame (90º rotation around z axis)
-  double roll = 0.0;
-  double pitch = 0.0;
-  double yaw = M_PI_2;
-  tf2::Quaternion q_enu_nwu;
-  q_enu_nwu.setRPY(roll, pitch, yaw);
-  tf2::Quaternion q_enu = tf2::Quaternion(
-    desired_earth_orientation.quaternion.x, desired_earth_orientation.quaternion.y,
-    desired_earth_orientation.quaternion.z, desired_earth_orientation.quaternion.w);
-  tf2::Quaternion q_nwu = q_enu_nwu * q_enu;
-
-  // Publish the desired orientation in NWU frame
-  double desired_roll, desired_pitch, desired_yaw;
-  tf2::Matrix3x3(q_nwu).getRPY(desired_roll, desired_pitch, desired_yaw);
-
-  gimbal_rotation.roll = desired_roll;
-  gimbal_rotation.pitch = desired_pitch;
-  gimbal_rotation.yaw = desired_yaw;
+  gimbal_rotation.roll = desired_roll_earth;
+  gimbal_rotation.pitch = desired_pitch_earth;
+  gimbal_rotation.yaw = desired_yaw_earth;
 
   gimbal_rotation_pub_->publish(gimbal_rotation);
+  last_gimbal_command_time_ = this->now();
 }
 
 bool DJIMatricePSDKPlatform::set_control_authority(bool state)
