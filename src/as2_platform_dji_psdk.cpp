@@ -386,11 +386,12 @@ void DJIMatricePSDKPlatform::gimbal_control_callback(
 
   // Transform desired orientation to earth frame
   geometry_msgs::msg::QuaternionStamped desired_earth_orientation;
+  desired_earth_orientation = desired_base_link_orientation;
+
   std::string target_frame = "earth";  // Earth frame
-  try {
-    desired_earth_orientation = tf_handler_.convert(desired_base_link_orientation, target_frame);
-  } catch (tf2::TransformException & ex) {
-    RCLCPP_ERROR(this->get_logger(), "Could not transform gimbal orientation: %s", ex.what());
+  if (!tf_handler_.tryConvert(desired_earth_orientation, target_frame, tf_timeout_)) {
+    RCLCPP_ERROR(
+      this->get_logger(), "Could not transform desired gimbal orientation to earth frame");
     return;
   }
   double desired_roll_earth, desired_pitch_earth, desired_yaw_earth;
