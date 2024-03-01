@@ -180,14 +180,14 @@ bool DJIMatricePSDKPlatform::ownSetPlatformControlMode(const as2_msgs::msg::Cont
     case as2_msgs::msg::ControlMode::UNSET:
       {
         // Release control authority
-        set_control_authority(false);
+        success = set_control_authority(false);
         break;
       }
     case as2_msgs::msg::ControlMode::HOVER:
     case as2_msgs::msg::ControlMode::SPEED:
       {
         // Obtain control authority
-        set_control_authority(true);
+        success = set_control_authority(true);
         break;
       }
     default:
@@ -230,7 +230,7 @@ bool DJIMatricePSDKPlatform::ownSendCommand()
   }
 
   switch (current_control_mode.yaw_mode) {
-    case as2_msgs::msg::ControlMode::YAW_ANGLE:
+    case as2_msgs::msg::ControlMode::YAW_SPEED:
       {
         velocity_command.axes[3] = command_twist_msg_.twist.angular.z;  // Yaw rate (rad/s)
         break;
@@ -263,7 +263,7 @@ bool DJIMatricePSDKPlatform::ownTakeoff()
   auto response = std::make_shared<std_srvs::srv::Trigger::Response>();
   RCLCPP_INFO(this->get_logger(), "Sending takeoff");
   bool result = takeoff_srv_->sendRequest(request, response);
-  bool success = success && response->success;
+  bool success = result && response->success;
   if (!success) {
     RCLCPP_INFO(this->get_logger(), "Could not takeoff due to '%s'", response->message.data());
   }
@@ -277,7 +277,7 @@ bool DJIMatricePSDKPlatform::ownLand()
   auto response = std::make_shared<std_srvs::srv::Trigger::Response>();
   RCLCPP_INFO(this->get_logger(), "Sending land");
   bool result = land_srv_->sendRequest(request, response);
-  bool success = success && response->success;
+  bool success = result && response->success;
   if (!success) {
     RCLCPP_INFO(this->get_logger(), "Could not land due to '%s'", response->message.data());
   }
