@@ -4,3 +4,4 @@
     info_freq: 10.0  # Hz (default: 10.0)
     enbale_camera: false  # (default: false)
     enable_gimbal: false  # (default: false)
+    tf_timeout_threshold: 0.05 # Default tf timeout (50ms)

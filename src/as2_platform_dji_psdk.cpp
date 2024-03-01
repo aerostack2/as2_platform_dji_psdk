@@ -104,6 +104,15 @@ void DJIMatricePSDKPlatform::configureSensors()
   sensor_odom_ptr_ = std::make_unique<as2::sensors::Sensor<nav_msgs::msg::Odometry>>("odom", this);
   RCLCPP_INFO(this->get_logger(), "DJIMatricePSDKPlatform odometry sensor configured");
 
+  // Read tf_timeout_threshold
+  double tf_timeout_threshold;
+  this->declare_parameter<double>("tf_timeout_threshold", 0.5);
+  this->get_parameter("tf_timeout_threshold", tf_timeout_threshold);
+  tf_timeout_ = std::chrono::duration_cast<std::chrono::nanoseconds>(
+    std::chrono::duration<double>(tf_timeout_threshold));
+  RCLCPP_INFO(
+    this->get_logger(), "DJIMatricePSDKPlatform tf_timeout_threshold: %f", tf_timeout_threshold);
+
   // Initialize the camera streaming service
   this->declare_parameter<bool>("enbale_camera", false);
   bool enable_camera;
@@ -165,7 +174,7 @@ bool DJIMatricePSDKPlatform::ownSetOffboardControl(bool offboard)
 {
   if (!offboard) {
     // Release control authority
-    set_control_authority(false);
+    return set_control_authority(false);
   }
   return true;
 }
@@ -180,6 +189,7 @@ bool DJIMatricePSDKPlatform::ownSetPlatformControlMode(const as2_msgs::msg::Cont
     case as2_msgs::msg::ControlMode::UNSET:
       {
         // Release control authority
+        RCLCPP_INFO(this->get_logger(), "UNSET MODE: Releasing control authority");
         success = set_control_authority(false);
         break;
       }
@@ -187,6 +197,7 @@ bool DJIMatricePSDKPlatform::ownSetPlatformControlMode(const as2_msgs::msg::Cont
     case as2_msgs::msg::ControlMode::SPEED:
       {
         // Obtain control authority
+        RCLCPP_INFO(this->get_logger(), "HOVER || SPEED MODE: Obtain control authority");
         success = set_control_authority(true);
         break;
       }
@@ -376,7 +387,12 @@ void DJIMatricePSDKPlatform::gimbal_control_callback(
   // Transform desired orientation to earth frame
   geometry_msgs::msg::QuaternionStamped desired_earth_orientation;
   std::string target_frame = "earth";  // Earth frame
-  desired_earth_orientation = tf_handler_.convert(desired_base_link_orientation, target_frame);
+  try {
+    desired_earth_orientation = tf_handler_.convert(desired_base_link_orientation, target_frame);
+  } catch (tf2::TransformException & ex) {
+    RCLCPP_ERROR(this->get_logger(), "Could not transform gimbal orientation: %s", ex.what());
+    return;
+  }
   double desired_roll_earth, desired_pitch_earth, desired_yaw_earth;
   as2::frame::quaternionToEuler(
     desired_earth_orientation.quaternion, desired_roll_earth, desired_pitch_earth,
@@ -392,6 +408,11 @@ void DJIMatricePSDKPlatform::gimbal_control_callback(
 
 bool DJIMatricePSDKPlatform::set_control_authority(bool state)
 {
+  // Avoid sending the same command
+  if (ctl_authority_ == state) {
+    return true;
+  }
+
   bool success = false;
   auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
   auto response = std::make_shared<std_srvs::srv::Trigger::Response>();
@@ -407,7 +428,6 @@ bool DJIMatricePSDKPlatform::set_control_authority(bool state)
         response->message.data());
       return success;
     }
-
   } else {
     // Release control authority
     RCLCPP_INFO(this->get_logger(), "Sending release control authority");
@@ -418,6 +438,9 @@ bool DJIMatricePSDKPlatform::set_control_authority(bool state)
         this->get_logger(), "Could not release control authority due to '%s'",
         response->message.data());
     }
+  }
+  if (success) {
+    ctl_authority_ = state;
   }
   return success;
 }

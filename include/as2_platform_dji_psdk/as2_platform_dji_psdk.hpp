@@ -74,6 +74,8 @@ public:
 
 private:
   // Internal variables
+  bool ctl_authority_;
+  std::chrono::nanoseconds tf_timeout_;
   as2::tf::TfHandler tf_handler_;
   std::unique_ptr<as2::sensors::Sensor<nav_msgs::msg::Odometry>> sensor_odom_ptr_;
   geometry_msgs::msg::Quaternion current_attitude_;
