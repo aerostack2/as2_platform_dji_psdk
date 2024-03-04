@@ -358,22 +358,22 @@ void DJIMatricePSDKPlatform::gimbal_control_callback(
     this->get_logger(), "Gimbal angle: %f %f %f", msg->target.vector.x, msg->target.vector.y,
     msg->target.vector.z);
 
-  psdk_interfaces::msg::GimbalRotation gimbal_rotation;
-  gimbal_rotation.payload_index = 1;  // Main payload
+  psdk_interfaces::msg::GimbalRotation gimbal_command_msg;
+  gimbal_command_msg.payload_index = 1;  // Main payload
 
   switch (msg->control_mode) {
     case as2_msgs::msg::GimbalControl::POSITION_MODE:
-      gimbal_rotation.rotation_mode = 1;  // Absolute
+      gimbal_command_msg.rotation_mode = 1;  // Absolute
       break;
     case as2_msgs::msg::GimbalControl::SPEED_MODE:
-      gimbal_rotation.rotation_mode = 2;  // Speed
+      gimbal_command_msg.rotation_mode = 2;  // Speed
       break;
     default:
       RCLCPP_ERROR(this->get_logger(), "Gimbal control mode not supported");
       break;
   }
 
-  gimbal_rotation.time = GIMBAL_COMMAND_TIME;  // In seconds, expected time to target rotation
+  gimbal_command_msg.time = GIMBAL_COMMAND_TIME;  // In seconds, expected time to target rotation
 
   // Desired roll, pitch and yaw in base_link frame
   geometry_msgs::msg::QuaternionStamped desired_base_link_orientation;
@@ -399,11 +399,21 @@ void DJIMatricePSDKPlatform::gimbal_control_callback(
     desired_earth_orientation.quaternion, desired_roll_earth, desired_pitch_earth,
     desired_yaw_earth);
 
-  gimbal_rotation.roll = desired_roll_earth;
-  gimbal_rotation.pitch = desired_pitch_earth;
-  gimbal_rotation.yaw = desired_yaw_earth;
+  gimbal_command_msg.roll = desired_roll_earth;
+  gimbal_command_msg.pitch = desired_pitch_earth;
+  gimbal_command_msg.yaw = desired_yaw_earth;
 
-  gimbal_rotation_pub_->publish(gimbal_rotation);
+
+  // Check if gimbal_command_msg_ is different from the last command
+  if (gimbal_command_msg_.rotation_mode == gimbal_command_msg.rotation_mode &&
+    gimbal_command_msg_.roll == gimbal_command_msg.roll &&
+    gimbal_command_msg_.pitch == gimbal_command_msg.pitch &&
+    gimbal_command_msg_.yaw == gimbal_command_msg.yaw)
+  {
+    return;
+  }
+  gimbal_command_msg_ = gimbal_command_msg;
+  gimbal_rotation_pub_->publish(gimbal_command_msg_);
   last_gimbal_command_time_ = this->now();
 }
 

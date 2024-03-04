@@ -81,6 +81,7 @@ private:
   geometry_msgs::msg::Quaternion current_attitude_;
   geometry_msgs::msg::Vector3 current_lineal_velocity_;
   geometry_msgs::msg::Vector3 current_angular_velocity_;
+  psdk_interfaces::msg::GimbalRotation gimbal_command_msg_;
   rclcpp::Time last_gimbal_command_time_;
 
   // Publishers
