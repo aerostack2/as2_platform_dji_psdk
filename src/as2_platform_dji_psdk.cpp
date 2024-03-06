@@ -375,11 +375,11 @@ void DJIMatricePSDKPlatform::gimbal_control_callback(
 
   gimbal_command_msg.time = GIMBAL_COMMAND_TIME;  // In seconds, expected time to target rotation
 
-  // Desired roll, pitch and yaw in base_link frame
+  // Desired roll, pitch and yaw in gimbal_base_link frame
   geometry_msgs::msg::QuaternionStamped desired_base_link_orientation;
   desired_base_link_orientation.header.stamp = msg->target.header.stamp;
   desired_base_link_orientation.header.frame_id =
-    as2::tf::generateTfName(this->get_namespace(), "base_link");
+    as2::tf::generateTfName(this->get_namespace(), "gimbal_base_link");
   as2::frame::eulerToQuaternion(
     msg->target.vector.x, msg->target.vector.y, msg->target.vector.z,
     desired_base_link_orientation.quaternion);

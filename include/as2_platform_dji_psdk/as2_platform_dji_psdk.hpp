@@ -38,6 +38,7 @@
 #include "std_srvs/srv/trigger.hpp"
 #include "as2_core/synchronous_service_client.hpp"
 #include "as2_core/sensor.hpp"
+#include "as2_core/utils/tf_utils.hpp"
 #include "as2_core/utils/frame_utils.hpp"
 #include "as2_msgs/msg/gimbal_control.hpp"
 #include "tf2_ros/static_transform_broadcaster.h"
