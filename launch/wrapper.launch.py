@@ -65,6 +65,7 @@ def generate_launch_description():
             {
                 "link_config_file_path": LaunchConfiguration('link_config_file_path'),
                 "hms_return_codes_path": LaunchConfiguration('hms_return_codes_path'),
+                "tf_frame_prefix": LaunchConfiguration('tf_frame_prefix'),
             },
             LaunchConfiguration('psdk_params_file_path'),
         ],
@@ -105,7 +106,10 @@ def generate_launch_description():
                               description='DJI PSDK link configuration file'),
         DeclareLaunchArgument('hms_return_codes_path',
                               default_value=hms_return_codes_file,
-                              description='Path to JSON file with known DJI return codes')
+                              description='Path to JSON file with known DJI return codes'),
+        DeclareLaunchArgument('tf_frame_prefix',
+                              default_value="",
+                              description='TF frame prefix'),
     ])
 
     # Declare Launch options
