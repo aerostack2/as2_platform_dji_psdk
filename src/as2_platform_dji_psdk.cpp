@@ -114,9 +114,9 @@ void DJIMatricePSDKPlatform::configureSensors()
     this->get_logger(), "DJIMatricePSDKPlatform tf_timeout_threshold: %f", tf_timeout_threshold);
 
   // Initialize the camera streaming service
-  this->declare_parameter<bool>("enbale_camera", false);
+  this->declare_parameter<bool>("enable_camera", false);
   bool enable_camera;
-  this->get_parameter("enbale_camera", enable_camera);
+  this->get_parameter("enable_camera", enable_camera);
   RCLCPP_INFO(
     this->get_logger(), "Camera streaming service: %s", enable_camera ? "enabled" : "disabled");
   if (enable_camera) {
@@ -135,11 +135,10 @@ void DJIMatricePSDKPlatform::configureSensors()
 
   // Initialize the gimbal service
   this->declare_parameter<bool>("enable_gimbal", false);
-  bool enable_gimbal;
-  this->get_parameter("enable_gimbal", enable_gimbal);
+  this->get_parameter("enable_gimbal", enable_gimbal_);
   RCLCPP_INFO(
-    this->get_logger(), "Gimbal reset service: %s", enable_gimbal ? "enabled" : "disabled");
-  if (enable_gimbal) {
+    this->get_logger(), "Gimbal reset service: %s", enable_gimbal_ ? "enabled" : "disabled");
+  if (enable_gimbal_) {
     auto request = std::make_shared<psdk_interfaces::srv::GimbalReset::Request>();
     request->payload_index = 1;
     request->reset_mode = 1;
@@ -149,6 +148,11 @@ void DJIMatricePSDKPlatform::configureSensors()
     bool success = result && response->success;
     if (!success) {
       RCLCPP_INFO(this->get_logger(), "Could not reset gimbal");
+      enable_gimbal_ = false;
+    } else {
+      this->declare_parameter<std::string>("gimbal_base_frame_id", "gimbal_base");
+      this->get_parameter("gimbal_base_frame_id", gimbal_base_frame_id_);
+      gimbal_base_frame_id_ = as2::tf::generateTfName(this->get_namespace(), gimbal_base_frame_id_);
     }
   }
   last_gimbal_command_time_ = this->now();
@@ -348,15 +352,16 @@ void DJIMatricePSDKPlatform::angular_velocity_callback(
 void DJIMatricePSDKPlatform::gimbal_control_callback(
   const as2_msgs::msg::GimbalControl::SharedPtr msg)
 {
+  if (!enable_gimbal_) {
+    RCLCPP_ERROR_ONCE(this->get_logger(), "Gimbal control not enabled");
+    return;
+  }
+
   double time_diff = (this->now() - last_gimbal_command_time_).seconds();
   if (time_diff < GIMBAL_COMMAND_TIME) {
     // Wait for the gimbal to reach the desired position
     return;
   }
-
-  RCLCPP_INFO(
-    this->get_logger(), "Gimbal angle: %f %f %f", msg->target.vector.x, msg->target.vector.y,
-    msg->target.vector.z);
 
   psdk_interfaces::msg::GimbalRotation gimbal_command_msg;
   gimbal_command_msg.payload_index = 1;  // Main payload
@@ -375,11 +380,10 @@ void DJIMatricePSDKPlatform::gimbal_control_callback(
 
   gimbal_command_msg.time = GIMBAL_COMMAND_TIME;  // In seconds, expected time to target rotation
 
-  // Desired roll, pitch and yaw in gimbal_base_link frame
+  // Desired roll, pitch and yaw in msg frame
   geometry_msgs::msg::QuaternionStamped desired_base_link_orientation;
   desired_base_link_orientation.header.stamp = msg->target.header.stamp;
-  desired_base_link_orientation.header.frame_id =
-    as2::tf::generateTfName(this->get_namespace(), "gimbal_base_link");
+  desired_base_link_orientation.header.frame_id = msg->target.header.frame_id;
   as2::frame::eulerToQuaternion(
     msg->target.vector.x, msg->target.vector.y, msg->target.vector.z,
     desired_base_link_orientation.quaternion);
@@ -403,9 +407,9 @@ void DJIMatricePSDKPlatform::gimbal_control_callback(
   gimbal_command_msg.pitch = desired_pitch_earth;
   gimbal_command_msg.yaw = desired_yaw_earth;
 
-
   // Check if gimbal_command_msg_ is different from the last command
-  if (gimbal_command_msg_.rotation_mode == gimbal_command_msg.rotation_mode &&
+  if (
+    gimbal_command_msg_.rotation_mode == gimbal_command_msg.rotation_mode &&
     gimbal_command_msg_.roll == gimbal_command_msg.roll &&
     gimbal_command_msg_.pitch == gimbal_command_msg.pitch &&
     gimbal_command_msg_.yaw == gimbal_command_msg.yaw)

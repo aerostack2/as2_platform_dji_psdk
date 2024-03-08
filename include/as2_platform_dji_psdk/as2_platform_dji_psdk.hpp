@@ -76,12 +76,16 @@ public:
 private:
   // Internal variables
   bool ctl_authority_;
-  std::chrono::nanoseconds tf_timeout_;
-  as2::tf::TfHandler tf_handler_;
   std::unique_ptr<as2::sensors::Sensor<nav_msgs::msg::Odometry>> sensor_odom_ptr_;
   geometry_msgs::msg::Quaternion current_attitude_;
   geometry_msgs::msg::Vector3 current_lineal_velocity_;
   geometry_msgs::msg::Vector3 current_angular_velocity_;
+
+  // Gimbal
+  as2::tf::TfHandler tf_handler_;
+  std::chrono::nanoseconds tf_timeout_;
+  bool enable_gimbal_;
+  std::string gimbal_base_frame_id_;
   psdk_interfaces::msg::GimbalRotation gimbal_command_msg_;
   rclcpp::Time last_gimbal_command_time_;
 
