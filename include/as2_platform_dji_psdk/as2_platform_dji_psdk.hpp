@@ -26,27 +26,43 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-
 #ifndef AS2_PLATFORM_DJI_PSDK__AS2_PLATFORM_DJI_PSDK_HPP_
 #define AS2_PLATFORM_DJI_PSDK__AS2_PLATFORM_DJI_PSDK_HPP_
 
+#include <string>
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include "as2_core/aerial_platform.hpp"
 #include "as2_msgs/msg/control_mode.hpp"
+#include "sensor_msgs/msg/joy.hpp"
+#include "std_srvs/srv/trigger.hpp"
+#include "as2_core/synchronous_service_client.hpp"
+#include "as2_core/sensor.hpp"
+#include "as2_core/utils/tf_utils.hpp"
+#include "as2_core/utils/frame_utils.hpp"
+#include "as2_msgs/msg/gimbal_control.hpp"
+#include "tf2_ros/static_transform_broadcaster.h"
+#include "nav_msgs/msg/odometry.hpp"
+#include "psdk_interfaces/msg/position_fused.hpp"
+#include "psdk_interfaces/msg/gimbal_rotation.hpp"
+#include "psdk_interfaces/srv/camera_setup_streaming.hpp"
+#include "psdk_interfaces/srv/gimbal_reset.hpp"
+#include "geometry_msgs/msg/quaternion_stamped.hpp"
+#include "geometry_msgs/msg/vector3_stamped.hpp"
+
+#define GIMBAL_COMMAND_TIME 0.5
 
 namespace as2_platform_dji_psdk
 {
 
-class DJIMatricePSDKPlatform_impl;
-
 class DJIMatricePSDKPlatform : public as2::AerialPlatform
 {
+  using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+
 public:
   explicit DJIMatricePSDKPlatform(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   virtual ~DJIMatricePSDKPlatform() = default;
 
-public:
   void configureSensors() override;
   bool ownSetArmingState(bool state) override;
   bool ownSetOffboardControl(bool offboard) override;
@@ -58,7 +74,54 @@ public:
   bool ownLand() override;
 
 private:
-  std::shared_ptr<DJIMatricePSDKPlatform_impl> _impl;
+  // Internal variables
+  bool ctl_authority_;
+  std::unique_ptr<as2::sensors::Sensor<nav_msgs::msg::Odometry>> sensor_odom_ptr_;
+  geometry_msgs::msg::Quaternion current_attitude_;
+  geometry_msgs::msg::Vector3 current_lineal_velocity_;
+  geometry_msgs::msg::Vector3 current_angular_velocity_;
+
+  // Gimbal
+  as2::tf::TfHandler tf_handler_;
+  std::chrono::nanoseconds tf_timeout_;
+  bool enable_gimbal_;
+  std::string gimbal_base_frame_id_;
+  psdk_interfaces::msg::GimbalRotation gimbal_command_msg_;
+  rclcpp::Time last_gimbal_command_time_;
+
+  // Publishers
+  rclcpp::Publisher<sensor_msgs::msg::Joy>::SharedPtr velocity_command_pub_;
+  rclcpp::Publisher<psdk_interfaces::msg::GimbalRotation>::SharedPtr gimbal_rotation_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::QuaternionStamped>::SharedPtr gimbal_attitude_pub_;
+
+  // Subscribers
+  rclcpp::Subscription<psdk_interfaces::msg::PositionFused>::SharedPtr position_fused_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::QuaternionStamped>::SharedPtr attitude_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr velocity_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr angular_velocity_sub_;
+  rclcpp::Subscription<as2_msgs::msg::GimbalControl>::SharedPtr gimbal_control_sub_;
+
+  // Services clients
+  as2::SynchronousServiceClient<std_srvs::srv::Trigger>::SharedPtr turn_on_motors_srv_;
+  as2::SynchronousServiceClient<std_srvs::srv::Trigger>::SharedPtr turn_off_motors_srv_;
+  as2::SynchronousServiceClient<std_srvs::srv::Trigger>::SharedPtr takeoff_srv_;
+  as2::SynchronousServiceClient<std_srvs::srv::Trigger>::SharedPtr land_srv_;
+  as2::SynchronousServiceClient<std_srvs::srv::Trigger>::SharedPtr set_local_position_srv_;
+  as2::SynchronousServiceClient<std_srvs::srv::Trigger>::SharedPtr obtain_ctrl_authority_srv_;
+  as2::SynchronousServiceClient<std_srvs::srv::Trigger>::SharedPtr release_ctrl_authority_srv_;
+  as2::SynchronousServiceClient<psdk_interfaces::srv::CameraSetupStreaming>::SharedPtr
+    camera_setup_streaming_srv_;
+  as2::SynchronousServiceClient<psdk_interfaces::srv::GimbalReset>::SharedPtr gimbal_reset_srv_;
+
+  // Subscribers callbacks
+  void position_fused_callback(const psdk_interfaces::msg::PositionFused::SharedPtr msg);
+  void attitude_callback(const geometry_msgs::msg::QuaternionStamped::SharedPtr msg);
+  void velocity_callback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
+  void angular_velocity_callback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
+  void gimbal_control_callback(const as2_msgs::msg::GimbalControl::SharedPtr msg);
+
+  // Utility functions
+  bool set_control_authority(bool state);
 };  // class DJIMatricePSDKPlatform
 
 }  // namespace as2_platform_dji_psdk
