@@ -55,7 +55,7 @@ DJIMatricePSDKPlatform::DJIMatricePSDKPlatform(const rclcpp::NodeOptions & optio
     std::bind(&DJIMatricePSDKPlatform::attitude_callback, this, std::placeholders::_1));
 
   velocity_sub_ = this->create_subscription<geometry_msgs::msg::Vector3Stamped>(
-    "psdk_ros2/velocity", 10,
+    "psdk_ros2/velocity_ground_fused", 10,
     std::bind(&DJIMatricePSDKPlatform::velocity_callback, this, std::placeholders::_1));
 
   gimbal_control_sub_ = this->create_subscription<as2_msgs::msg::GimbalControl>(
