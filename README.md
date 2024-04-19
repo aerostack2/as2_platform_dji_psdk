@@ -1,6 +1,6 @@
 # as2_platform_dji_psdk
 
-Template for Aerostack2 Nodes
+Aerostack2 DJI PSDK platform package.
 
 ## Dependencies
 

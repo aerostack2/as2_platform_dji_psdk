@@ -26,6 +26,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+/*!*******************************************************************************************
+ *  \file       as2_platform_dji_psdk_node.cpp
+ *  \brief      DJI PSDK platform ROS 2 node
+ *  \authors    Rafael Pérez Seguí
+ *              Santiago Tapia Fernandez
+ ********************************************************************************/
+
 #include "as2_core/core_functions.hpp"
 #include "as2_platform_dji_psdk.hpp"
 

@@ -26,6 +26,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+/*!*******************************************************************************************
+ *  \file       as2_platform_dji_psdk_gtest.cpp
+ *  \brief      DJI PSDK platform tests
+ *  \authors    Rafael Pérez Seguí
+ *              Santiago Tapia Fernandez
+ ********************************************************************************/
+
 #include <gtest/gtest.h>
 #include <iostream>
 #include <memory>

@@ -26,6 +26,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+/*!*******************************************************************************************
+ *  \file       as2_platform_dji_psdk.hpp
+ *  \brief      DJI PSDK platform definition
+ *  \authors    Rafael Pérez Seguí
+ *              Santiago Tapia Fernandez
+ ********************************************************************************/
+
 #ifndef AS2_PLATFORM_DJI_PSDK__AS2_PLATFORM_DJI_PSDK_HPP_
 #define AS2_PLATFORM_DJI_PSDK__AS2_PLATFORM_DJI_PSDK_HPP_
 
@@ -114,14 +121,14 @@ private:
   as2::SynchronousServiceClient<psdk_interfaces::srv::GimbalReset>::SharedPtr gimbal_reset_srv_;
 
   // Subscribers callbacks
-  void position_fused_callback(const psdk_interfaces::msg::PositionFused::SharedPtr msg);
-  void attitude_callback(const geometry_msgs::msg::QuaternionStamped::SharedPtr msg);
-  void velocity_callback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
-  void angular_velocity_callback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
-  void gimbal_control_callback(const as2_msgs::msg::GimbalControl::SharedPtr msg);
+  void positionFusedCallback(const psdk_interfaces::msg::PositionFused::SharedPtr msg);
+  void attitudeCallback(const geometry_msgs::msg::QuaternionStamped::SharedPtr msg);
+  void velocityCallback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
+  void angularVelocityCallback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
+  void gimbalControlCallback(const as2_msgs::msg::GimbalControl::SharedPtr msg);
 
   // Utility functions
-  bool set_control_authority(bool state);
+  bool setControlAuthority(bool state);
 };  // class DJIMatricePSDKPlatform
 
 }  // namespace as2_platform_dji_psdk

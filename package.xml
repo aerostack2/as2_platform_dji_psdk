@@ -3,14 +3,14 @@
 <package format="3">
   <name>as2_platform_dji_psdk</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>AS2 DJI PSDK aerial platform</description>
   
   <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
 
   <license>BDS-3</license>
 
   <author email="r.psegui@upm.es">Rafael Perez-Segui</author>
-  <author email="santiago.tapia@upm.es">santiago Tapia-Fernandez</author>
+  <author email="santiago.tapia@upm.es">Santiago Tapia-Fernandez</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

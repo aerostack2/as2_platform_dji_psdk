@@ -26,6 +26,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+/*!*******************************************************************************************
+ *  \file       as2_platform_dji_psdk.cpp
+ *  \brief      DJI PSDK platform implementation
+ *  \authors    Rafael Pérez Seguí
+ *              Santiago Tapia Fernandez
+ ********************************************************************************/
+
 #include "as2_platform_dji_psdk.hpp"
 
 namespace as2_platform_dji_psdk
@@ -48,19 +55,19 @@ DJIMatricePSDKPlatform::DJIMatricePSDKPlatform(const rclcpp::NodeOptions & optio
   // Create subscriptions
   position_fused_sub_ = this->create_subscription<psdk_interfaces::msg::PositionFused>(
     "psdk_ros2/position_fused", 10,
-    std::bind(&DJIMatricePSDKPlatform::position_fused_callback, this, std::placeholders::_1));
+    std::bind(&DJIMatricePSDKPlatform::positionFusedCallback, this, std::placeholders::_1));
 
   attitude_sub_ = this->create_subscription<geometry_msgs::msg::QuaternionStamped>(
     "psdk_ros2/attitude", 10,
-    std::bind(&DJIMatricePSDKPlatform::attitude_callback, this, std::placeholders::_1));
+    std::bind(&DJIMatricePSDKPlatform::attitudeCallback, this, std::placeholders::_1));
 
   velocity_sub_ = this->create_subscription<geometry_msgs::msg::Vector3Stamped>(
     "psdk_ros2/velocity_ground_fused", 10,
-    std::bind(&DJIMatricePSDKPlatform::velocity_callback, this, std::placeholders::_1));
+    std::bind(&DJIMatricePSDKPlatform::velocityCallback, this, std::placeholders::_1));
 
   gimbal_control_sub_ = this->create_subscription<as2_msgs::msg::GimbalControl>(
     "platform/gimbal/gimbal_command", 10,
-    std::bind(&DJIMatricePSDKPlatform::gimbal_control_callback, this, std::placeholders::_1));
+    std::bind(&DJIMatricePSDKPlatform::gimbalControlCallback, this, std::placeholders::_1));
 
   // Create services
   turn_on_motors_srv_ = std::make_shared<as2::SynchronousServiceClient<std_srvs::srv::Trigger>>(
@@ -178,7 +185,7 @@ bool DJIMatricePSDKPlatform::ownSetOffboardControl(bool offboard)
 {
   if (!offboard) {
     // Release control authority
-    return set_control_authority(false);
+    return setControlAuthority(false);
   }
   return true;
 }
@@ -194,7 +201,7 @@ bool DJIMatricePSDKPlatform::ownSetPlatformControlMode(const as2_msgs::msg::Cont
       {
         // Release control authority
         RCLCPP_INFO(this->get_logger(), "UNSET MODE: Releasing control authority");
-        success = set_control_authority(false);
+        success = setControlAuthority(false);
         break;
       }
     case as2_msgs::msg::ControlMode::HOVER:
@@ -202,7 +209,7 @@ bool DJIMatricePSDKPlatform::ownSetPlatformControlMode(const as2_msgs::msg::Cont
       {
         // Obtain control authority
         RCLCPP_INFO(this->get_logger(), "HOVER || SPEED MODE: Obtain control authority");
-        success = set_control_authority(true);
+        success = setControlAuthority(true);
         break;
       }
     default:
@@ -262,13 +269,13 @@ bool DJIMatricePSDKPlatform::ownSendCommand()
 void DJIMatricePSDKPlatform::ownStopPlatform()
 {
   // Send hover to platform here
-  set_control_authority(false);
+  setControlAuthority(false);
 }
 
 void DJIMatricePSDKPlatform::ownKillSwitch()
 {
   // Send kill switch to platform here
-  set_control_authority(false);
+  setControlAuthority(false);
 }
 
 bool DJIMatricePSDKPlatform::ownTakeoff()
@@ -299,7 +306,7 @@ bool DJIMatricePSDKPlatform::ownLand()
   return success;
 }
 
-void DJIMatricePSDKPlatform::position_fused_callback(
+void DJIMatricePSDKPlatform::positionFusedCallback(
   const psdk_interfaces::msg::PositionFused::SharedPtr msg)
 {
   // Update the odometry sensor
@@ -331,25 +338,25 @@ void DJIMatricePSDKPlatform::position_fused_callback(
   sensor_odom_ptr_->updateData(odom_msg);
 }
 
-void DJIMatricePSDKPlatform::attitude_callback(
+void DJIMatricePSDKPlatform::attitudeCallback(
   const geometry_msgs::msg::QuaternionStamped::SharedPtr msg)
 {
   current_attitude_ = msg->quaternion;
 }
 
-void DJIMatricePSDKPlatform::velocity_callback(
+void DJIMatricePSDKPlatform::velocityCallback(
   const geometry_msgs::msg::Vector3Stamped::SharedPtr msg)
 {
   current_lineal_velocity_ = msg->vector;
 }
 
-void DJIMatricePSDKPlatform::angular_velocity_callback(
+void DJIMatricePSDKPlatform::angularVelocityCallback(
   const geometry_msgs::msg::Vector3Stamped::SharedPtr msg)
 {
   current_angular_velocity_ = msg->vector;
 }
 
-void DJIMatricePSDKPlatform::gimbal_control_callback(
+void DJIMatricePSDKPlatform::gimbalControlCallback(
   const as2_msgs::msg::GimbalControl::SharedPtr msg)
 {
   if (!enable_gimbal_) {
@@ -421,7 +428,7 @@ void DJIMatricePSDKPlatform::gimbal_control_callback(
   last_gimbal_command_time_ = this->now();
 }
 
-bool DJIMatricePSDKPlatform::set_control_authority(bool state)
+bool DJIMatricePSDKPlatform::setControlAuthority(bool state)
 {
   // Avoid sending the same command
   if (ctl_authority_ == state) {
