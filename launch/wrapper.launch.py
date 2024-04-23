@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+
+"""Launch psdk_wrapper node."""
+
 # Copyright 2023 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,18 +29,29 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Launch psdk_wrapper node."""
-from launch import LaunchDescription
-from launch_ros.substitutions import FindPackageShare
-from launch.actions import EmitEvent, DeclareLaunchArgument
+
+__authors__ = "Rafael Pérez Seguí"
+__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
+__license__ = "BSD-3-Clause"
+__version__ = "0.1.0"
+
+import lifecycle_msgs.msg
 from launch_ros.actions import LifecycleNode
 from launch_ros.events.lifecycle import ChangeState
+from launch_ros.substitutions import FindPackageShare
+from launch.actions import EmitEvent, DeclareLaunchArgument
+from launch import LaunchDescription
 from launch.substitutions import LaunchConfiguration, EnvironmentVariable, PathJoinSubstitution
-import lifecycle_msgs.msg
 import launch
 
 
-def generate_launch_description():
+def generate_launch_description() -> LaunchDescription:
+    """
+    Entry point for launch file.
+
+    :return: Launch description
+    :rtype: LaunchDescription
+    """
     # Declare the namespace launch argument
     psdk_params_file = PathJoinSubstitution([
         FindPackageShare('as2_platform_dji_psdk'),
@@ -72,7 +87,8 @@ def generate_launch_description():
         remappings=[
             ("psdk_ros2/gps_position_fused", "sensor_measurements/gps"),
             ("psdk_ros2/imu", "sensor_measurements/imu"),
-            ("psdk_ros2/main_camera_stream", "sensor_measurements/main_camera/image_raw"),
+            ("psdk_ros2/main_camera_stream",
+             "sensor_measurements/main_camera/image_raw"),
         ]
     )
 
