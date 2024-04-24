@@ -40,8 +40,8 @@ from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import LifecycleNode
 import lifecycle_msgs.msg
 import launch
-from launch.actions import EmitEvent, DeclareLaunchArgument
 from launch import LaunchDescription
+from launch.actions import EmitEvent, DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration, EnvironmentVariable, PathJoinSubstitution
 
 
