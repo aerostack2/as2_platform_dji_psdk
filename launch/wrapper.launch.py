@@ -35,14 +35,14 @@ __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 __version__ = '0.1.0'
 
+import launch
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, EmitEvent
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
+from launch_ros.actions import LifecycleNode
 from launch_ros.events.lifecycle import ChangeState
 from launch_ros.substitutions import FindPackageShare
-from launch_ros.actions import LifecycleNode
 import lifecycle_msgs.msg
-import launch
-from launch.actions import EmitEvent, DeclareLaunchArgument
-from launch import LaunchDescription
-from launch.substitutions import LaunchConfiguration, EnvironmentVariable, PathJoinSubstitution
 
 
 def generate_launch_description() -> LaunchDescription:
