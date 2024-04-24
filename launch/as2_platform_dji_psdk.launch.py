@@ -30,10 +30,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__authors__ = "Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
 import os
 from ament_index_python.packages import get_package_share_directory
@@ -77,11 +77,11 @@ def generate_launch_description() -> LaunchDescription:
             default_value=platform_config_file,
             description='Platform configuration file'),
         Node(
-            package="as2_platform_dji_psdk",
-            executable="as2_platform_dji_psdk_node",
-            name="platform",
+            package='as2_platform_dji_psdk',
+            executable='as2_platform_dji_psdk_node',
+            name='platform',
             namespace=LaunchConfiguration('namespace'),
-            output="screen",
+            output='screen',
             emulate_tty=True,
             arguments=['--ros-args', '--log-level',
                        LaunchConfiguration('log_level')],
@@ -89,7 +89,7 @@ def generate_launch_description() -> LaunchDescription:
                 *as2_utils.launch_configuration('config_file',
                                                 default_value=platform_config_file),
                 {
-                    "control_modes_file": LaunchConfiguration('control_modes_file'),
+                    'control_modes_file': LaunchConfiguration('control_modes_file'),
                 }
             ]
         )

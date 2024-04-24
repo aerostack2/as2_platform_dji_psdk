@@ -30,19 +30,19 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__authors__ = "Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
-import lifecycle_msgs.msg
-from launch_ros.actions import LifecycleNode
 from launch_ros.events.lifecycle import ChangeState
 from launch_ros.substitutions import FindPackageShare
+from launch_ros.actions import LifecycleNode
+import lifecycle_msgs.msg
+import launch
 from launch.actions import EmitEvent, DeclareLaunchArgument
 from launch import LaunchDescription
 from launch.substitutions import LaunchConfiguration, EnvironmentVariable, PathJoinSubstitution
-import launch
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -70,25 +70,25 @@ def generate_launch_description() -> LaunchDescription:
 
     # Prepare the wrapper node
     wrapper_node = LifecycleNode(
-        package="psdk_wrapper",
-        executable="psdk_wrapper_node",
-        name="psdk_wrapper_node",
+        package='psdk_wrapper',
+        executable='psdk_wrapper_node',
+        name='psdk_wrapper_node',
         namespace=LaunchConfiguration('namespace'),
-        output="screen",
+        output='screen',
         emulate_tty=True,
         parameters=[
             {
-                "link_config_file_path": LaunchConfiguration('link_config_file_path'),
-                "hms_return_codes_path": LaunchConfiguration('hms_return_codes_path'),
-                "tf_frame_prefix": LaunchConfiguration('tf_frame_prefix'),
+                'link_config_file_path': LaunchConfiguration('link_config_file_path'),
+                'hms_return_codes_path': LaunchConfiguration('hms_return_codes_path'),
+                'tf_frame_prefix': LaunchConfiguration('tf_frame_prefix'),
             },
             LaunchConfiguration('psdk_params_file_path'),
         ],
         remappings=[
-            ("psdk_ros2/gps_position_fused", "sensor_measurements/gps"),
-            ("psdk_ros2/imu", "sensor_measurements/imu"),
-            ("psdk_ros2/main_camera_stream",
-             "sensor_measurements/main_camera/image_raw"),
+            ('psdk_ros2/gps_position_fused', 'sensor_measurements/gps'),
+            ('psdk_ros2/imu', 'sensor_measurements/imu'),
+            ('psdk_ros2/main_camera_stream',
+             'sensor_measurements/main_camera/image_raw'),
         ]
     )
 
@@ -124,7 +124,7 @@ def generate_launch_description() -> LaunchDescription:
                               default_value=hms_return_codes_file,
                               description='Path to JSON file with known DJI return codes'),
         DeclareLaunchArgument('tf_frame_prefix',
-                              default_value="",
+                              default_value='',
                               description='TF frame prefix'),
     ])
 
