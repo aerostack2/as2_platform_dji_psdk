@@ -92,7 +92,6 @@ private:
   as2::tf::TfHandler tf_handler_;
   std::chrono::nanoseconds tf_timeout_;
   bool enable_gimbal_;
-  std::string gimbal_base_frame_id_;
   psdk_interfaces::msg::GimbalRotation gimbal_command_msg_;
   rclcpp::Time last_gimbal_command_time_;
 

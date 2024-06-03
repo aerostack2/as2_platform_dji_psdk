@@ -1,0 +1,8 @@
+/**:
+    ros__parameters:
+      app_name: "YourPSDK"
+      app_id: "YourID"
+      app_key: "YourAppKey"
+      app_license: "YourAppLicense"
+      developer_account: "YourDeveloperAccount"
+      baudrate: "921600"

@@ -35,13 +35,16 @@ __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 __version__ = '0.1.0'
 
+import os
+
+from ament_index_python.packages import get_package_share_directory
+import as2_core.launch_param_utils as as2_utils
 import launch
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, EmitEvent
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import LifecycleNode
 from launch_ros.events.lifecycle import ChangeState
-from launch_ros.substitutions import FindPackageShare
 import lifecycle_msgs.msg
 
 
@@ -52,21 +55,20 @@ def generate_launch_description() -> LaunchDescription:
     :return: Launch description
     :rtype: LaunchDescription
     """
-    # Declare the namespace launch argument
-    psdk_params_file = PathJoinSubstitution([
-        FindPackageShare('as2_platform_dji_psdk'),
-        'config', 'psdk_params.yaml'
-    ])
+    package_folder = get_package_share_directory(
+        'as2_platform_dji_psdk')
 
-    link_config_file = PathJoinSubstitution([
-        FindPackageShare('as2_platform_dji_psdk'),
-        'config', 'link_config.json'
-    ])
+    psdk_params_file = os.path.join(package_folder,
+                                    'config/psdk_params.yaml')
 
-    hms_return_codes_file = PathJoinSubstitution([
-        FindPackageShare('as2_platform_dji_psdk'),
-        'config', 'hms_2023_08_22.json'
-    ])
+    psdk_authentication_params_file = os.path.join(package_folder,
+                                                   'config/psdk_authentication_params.yaml')
+
+    link_config_file = os.path.join(package_folder,
+                                    'config/link_config.json')
+
+    hms_return_codes_file = os.path.join(package_folder,
+                                         'config/hms_2023_08_22.json')
 
     # Prepare the wrapper node
     wrapper_node = LifecycleNode(
@@ -77,12 +79,13 @@ def generate_launch_description() -> LaunchDescription:
         output='screen',
         emulate_tty=True,
         parameters=[
+            *as2_utils.launch_configuration('psdk_params_file',
+                                            default_value=psdk_params_file),
             {
                 'link_config_file_path': LaunchConfiguration('link_config_file_path'),
                 'hms_return_codes_path': LaunchConfiguration('hms_return_codes_path'),
-                'tf_frame_prefix': LaunchConfiguration('tf_frame_prefix'),
             },
-            LaunchConfiguration('psdk_params_file_path'),
+            LaunchConfiguration('psdk_authentication_params_file'),
         ],
         remappings=[
             ('psdk_ros2/gps_position_fused', 'sensor_measurements/gps'),
@@ -114,18 +117,19 @@ def generate_launch_description() -> LaunchDescription:
                               default_value=EnvironmentVariable(
                                   'AEROSTACK2_SIMULATION_DRONE_ID'),
                               description='Drone namespace'),
-        DeclareLaunchArgument('psdk_params_file_path',
-                              default_value=psdk_params_file,
-                              description='DJI PSDK configuration file'),
+        DeclareLaunchArgument('psdk_authentication_params_file',
+                              default_value=psdk_authentication_params_file,
+                              description='DJI PSDK authentication file'),
         DeclareLaunchArgument('link_config_file_path',
                               default_value=link_config_file,
                               description='DJI PSDK link configuration file'),
         DeclareLaunchArgument('hms_return_codes_path',
                               default_value=hms_return_codes_file,
                               description='Path to JSON file with known DJI return codes'),
-        DeclareLaunchArgument('tf_frame_prefix',
-                              default_value='',
-                              description='TF frame prefix'),
+        *as2_utils.declare_launch_arguments(
+            'psdk_params_file',
+            default_value=psdk_params_file,
+            description='Paremeters for DJI PSDK authentication'),
     ])
 
     # Declare Launch options
