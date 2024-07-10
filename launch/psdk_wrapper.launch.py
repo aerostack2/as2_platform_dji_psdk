@@ -38,7 +38,8 @@ __version__ = '0.1.0'
 import os
 
 from ament_index_python.packages import get_package_share_directory
-import as2_core.launch_param_utils as as2_utils
+from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
+from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 import launch
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, EmitEvent
@@ -79,13 +80,14 @@ def generate_launch_description() -> LaunchDescription:
         output='screen',
         emulate_tty=True,
         parameters=[
-            *as2_utils.launch_configuration('psdk_params_file',
-                                            default_value=psdk_params_file),
             {
                 'link_config_file_path': LaunchConfiguration('link_config_file_path'),
                 'hms_return_codes_path': LaunchConfiguration('hms_return_codes_path'),
             },
             LaunchConfiguration('psdk_authentication_params_file'),
+            LaunchConfigurationFromConfigFile(
+                'psdk_params_file',
+                default_file=psdk_params_file),
         ],
         remappings=[
             ('psdk_ros2/gps_position_fused', 'sensor_measurements/gps'),
@@ -126,9 +128,9 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('hms_return_codes_path',
                               default_value=hms_return_codes_file,
                               description='Path to JSON file with known DJI return codes'),
-        *as2_utils.declare_launch_arguments(
-            'psdk_params_file',
-            default_value=psdk_params_file,
+        DeclareLaunchArgumentsFromConfigFile(
+            name='psdk_params_file',
+            source_file=psdk_params_file,
             description='Paremeters for DJI PSDK authentication'),
     ])
 
