@@ -39,9 +39,8 @@ from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgu
 from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -53,8 +52,10 @@ def generate_launch_description() -> LaunchDescription:
     """
     # Get default platform configuration file
     package_folder = get_package_share_directory('as2_platform_dji_psdk')
+
     platform_config_file = os.path.join(package_folder,
                                         'config/platform_config_file.yaml')
+
     control_modes = PathJoinSubstitution([
         FindPackageShare('as2_platform_dji_psdk'),
         'config', 'control_modes.yaml'

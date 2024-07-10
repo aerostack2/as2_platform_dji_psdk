@@ -156,10 +156,6 @@ void DJIMatricePSDKPlatform::configureSensors()
     if (!success) {
       RCLCPP_INFO(this->get_logger(), "Could not reset gimbal");
       enable_gimbal_ = false;
-    } else {
-      this->declare_parameter<std::string>("gimbal_base_frame_id", "gimbal_base");
-      this->get_parameter("gimbal_base_frame_id", gimbal_base_frame_id_);
-      gimbal_base_frame_id_ = as2::tf::generateTfName(this->get_namespace(), gimbal_base_frame_id_);
     }
   }
   last_gimbal_command_time_ = this->now();
