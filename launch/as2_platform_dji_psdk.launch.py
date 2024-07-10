@@ -1,8 +1,4 @@
-#!/usr/bin/env python3
-
-"""Launch as2_platform_dji_psdk node."""
-
-# Copyright 2023 Universidad Politécnica de Madrid
+# Copyright 2024 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -30,15 +26,17 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__authors__ = 'Rafael Pérez Seguí'
-__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+"""Launch as2_platform_dji_psdk node."""
+
+__authors__ = 'Rafael Pérez Seguí, Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
-__version__ = '0.1.0'
 
 import os
 
 from ament_index_python.packages import get_package_share_directory
-import as2_core.launch_param_utils as as2_utils
+from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
+from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
@@ -58,8 +56,10 @@ def generate_launch_description() -> LaunchDescription:
     platform_config_file = os.path.join(package_folder,
                                         'config/platform_config_file.yaml')
 
-    control_modes = os.path.join(package_folder,
-                                 'config/control_modes.yaml')
+    control_modes = PathJoinSubstitution([
+        FindPackageShare('as2_platform_dji_psdk'),
+        'config', 'control_modes.yaml'
+    ])
 
     return LaunchDescription([
         DeclareLaunchArgument('namespace',
@@ -71,9 +71,8 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('control_modes_file',
                               default_value=control_modes,
                               description='Platform control modes file'),
-        *as2_utils.declare_launch_arguments(
-            'config_file',
-            default_value=platform_config_file,
+        DeclareLaunchArgumentsFromConfigFile(
+            name='config_file', source_file=platform_config_file,
             description='Platform configuration file'),
         Node(
             package='as2_platform_dji_psdk',
@@ -85,11 +84,12 @@ def generate_launch_description() -> LaunchDescription:
             arguments=['--ros-args', '--log-level',
                        LaunchConfiguration('log_level')],
             parameters=[
-                *as2_utils.launch_configuration('config_file',
-                                                default_value=platform_config_file),
                 {
                     'control_modes_file': LaunchConfiguration('control_modes_file'),
-                }
+                },
+                LaunchConfigurationFromConfigFile(
+                    'config_file',
+                    default_file=platform_config_file),
             ]
         )
     ])
