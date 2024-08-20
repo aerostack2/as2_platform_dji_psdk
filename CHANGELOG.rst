@@ -2,8 +2,8 @@
 Changelog for package as2_platform_dji_psdk
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2024-08-20)
+------------------
 * [fix] psdk_wrapper.launch.py by removing tab in default config files
 * [feat] Update changes in launcher and params to psdk_ros2 v1.3.0
 * [feat] Update launcher with param utils
