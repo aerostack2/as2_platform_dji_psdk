@@ -111,15 +111,6 @@ void DJIMatricePSDKPlatform::configureSensors()
   sensor_odom_ptr_ = std::make_unique<as2::sensors::Sensor<nav_msgs::msg::Odometry>>("odom", this);
   RCLCPP_INFO(this->get_logger(), "DJIMatricePSDKPlatform odometry sensor configured");
 
-  // Read tf_timeout_threshold
-  double tf_timeout_threshold;
-  this->declare_parameter<double>("tf_timeout_threshold", 0.5);
-  this->get_parameter("tf_timeout_threshold", tf_timeout_threshold);
-  tf_timeout_ = std::chrono::duration_cast<std::chrono::nanoseconds>(
-    std::chrono::duration<double>(tf_timeout_threshold));
-  RCLCPP_INFO(
-    this->get_logger(), "DJIMatricePSDKPlatform tf_timeout_threshold: %f", tf_timeout_threshold);
-
   // Initialize the camera streaming service
   this->declare_parameter<bool>("enable_camera", false);
   bool enable_camera;
@@ -396,7 +387,7 @@ void DJIMatricePSDKPlatform::gimbalControlCallback(
   desired_earth_orientation = desired_base_link_orientation;
 
   std::string target_frame = "earth";  // Earth frame
-  if (!tf_handler_.tryConvert(desired_earth_orientation, target_frame, tf_timeout_)) {
+  if (!tf_handler_.tryConvert(desired_earth_orientation, target_frame)) {
     RCLCPP_ERROR(
       this->get_logger(), "Could not transform desired gimbal orientation to earth frame");
     return;
