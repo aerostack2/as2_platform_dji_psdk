@@ -172,9 +172,11 @@ bool DJIMatricePSDKPlatform::ownSetOffboardControl(bool offboard)
 {
   if (!offboard) {
     // Release control authority
+    RCLCPP_INFO(this->get_logger(), "Releasing control authority");
     return setControlAuthority(false);
   }
-  return true;
+  RCLCPP_INFO(this->get_logger(), "Obtain control authority");
+  return setControlAuthority(true);
 }
 
 bool DJIMatricePSDKPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg)
@@ -196,7 +198,6 @@ bool DJIMatricePSDKPlatform::ownSetPlatformControlMode(const as2_msgs::msg::Cont
       {
         // Obtain control authority
         RCLCPP_INFO(this->get_logger(), "HOVER || SPEED MODE: Obtain control authority");
-        success = setControlAuthority(true);
         break;
       }
     default:
