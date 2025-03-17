@@ -172,9 +172,11 @@ bool DJIMatricePSDKPlatform::ownSetOffboardControl(bool offboard)
 {
   if (!offboard) {
     // Release control authority
+    RCLCPP_INFO(this->get_logger(), "Releasing control authority");
     return setControlAuthority(false);
   }
-  return true;
+  RCLCPP_INFO(this->get_logger(), "Obtain control authority");
+  return setControlAuthority(true);
 }
 
 bool DJIMatricePSDKPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg)
@@ -196,7 +198,7 @@ bool DJIMatricePSDKPlatform::ownSetPlatformControlMode(const as2_msgs::msg::Cont
       {
         // Obtain control authority
         RCLCPP_INFO(this->get_logger(), "HOVER || SPEED MODE: Obtain control authority");
-        success = setControlAuthority(true);
+        success = ctl_authority_;
         break;
       }
     default:
@@ -275,6 +277,9 @@ bool DJIMatricePSDKPlatform::ownTakeoff()
   bool success = result && response->success;
   if (!success) {
     RCLCPP_INFO(this->get_logger(), "Could not takeoff due to '%s'", response->message.data());
+  } else {
+    // sleep 10 seconds to wait for the takeoff
+    rclcpp::sleep_for(std::chrono::seconds(10));
   }
   return success;
 }
@@ -289,6 +294,9 @@ bool DJIMatricePSDKPlatform::ownLand()
   bool success = result && response->success;
   if (!success) {
     RCLCPP_INFO(this->get_logger(), "Could not land due to '%s'", response->message.data());
+  } else {
+    // sleep 10 seconds to wait for the land
+    rclcpp::sleep_for(std::chrono::seconds(10));
   }
   return success;
 }
