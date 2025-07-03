@@ -63,7 +63,7 @@ def generate_launch_description() -> LaunchDescription:
                                     'config/psdk_params.yaml')
 
     psdk_authentication_params_file = os.path.join(package_folder,
-                                                   'config/psdk_authentication_params.yaml')
+                                                   'config/psdk_authentication.yaml')
 
     link_config_file = os.path.join(package_folder,
                                     'config/link_config.json')
