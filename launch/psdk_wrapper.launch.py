@@ -83,7 +83,7 @@ def generate_launch_description() -> LaunchDescription:
             {
                 'link_config_file_path': LaunchConfiguration('link_config_file_path'),
                 'hms_return_codes_path': LaunchConfiguration('hms_return_codes_path'),
-                "tf_frame_prefix": LaunchConfiguration('tf_frame_prefix'),
+                'tf_frame_prefix': LaunchConfiguration('tf_frame_prefix'),
             },
             LaunchConfiguration('psdk_authentication_params_file'),
             LaunchConfigurationFromConfigFile(
@@ -134,7 +134,7 @@ def generate_launch_description() -> LaunchDescription:
             source_file=psdk_params_file,
             description='Paremeters for DJI PSDK authentication'),
         DeclareLaunchArgument('tf_frame_prefix',
-                              default_value="",
+                              default_value='',
                               description='TF frame prefix'),
     ])
 
