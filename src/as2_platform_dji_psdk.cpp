@@ -101,6 +101,10 @@ DJIMatricePSDKPlatform::DJIMatricePSDKPlatform(const rclcpp::NodeOptions & optio
     std::make_shared<as2::SynchronousServiceClient<psdk_interfaces::srv::GimbalReset>>(
     "psdk_ros2/gimbal_reset", this);
 
+  calibrate_gimbal_yaw_srv_ =
+    std::make_shared<as2::SynchronousServiceClient<std_srvs::srv::Trigger>>(
+    "psdk_ros2/calibrate_gimbal_yaw", this);
+
   RCLCPP_INFO(this->get_logger(), "DJIMatricePSDKPlatform initialized");
 }
 
@@ -164,8 +168,38 @@ bool DJIMatricePSDKPlatform::ownSetArmingState(bool state)
     RCLCPP_INFO(
       this->get_logger(), "Could not set local position reference due to '%s'",
       response->message.data());
+    return success;
+  }
+
+  // On arming the aircraft is static, level and (if used) RTK heading has
+  // converged, so this is the right moment to calibrate the constant bias
+  // between the gimbal magnetometer yaw and the FC/RTK heading. Only done when
+  // arming (state == true) and the gimbal is enabled.
+  if (state && enable_gimbal_) {
+    calibrateGimbalYaw();
   }
   return success;
+}
+
+void DJIMatricePSDKPlatform::calibrateGimbalYaw()
+{
+  // Re-center the gimbal to its home/forward pose so the calibration reference
+  // (true gimbal-to-body yaw == 0) is guaranteed, then let it settle.
+  auto reset_request = std::make_shared<psdk_interfaces::srv::GimbalReset::Request>();
+  reset_request->payload_index = 1;
+  reset_request->reset_mode = 1;
+  auto reset_response = std::make_shared<psdk_interfaces::srv::GimbalReset::Response>();
+  gimbal_reset_srv_->sendRequest(reset_request, reset_response);
+  rclcpp::sleep_for(std::chrono::seconds(2));
+
+  auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+  auto response = std::make_shared<std_srvs::srv::Trigger::Response>();
+  bool result = calibrate_gimbal_yaw_srv_->sendRequest(request, response);
+  if (!(result && response->success)) {
+    RCLCPP_WARN(this->get_logger(), "Could not calibrate gimbal yaw offset");
+  } else {
+    RCLCPP_INFO(this->get_logger(), "Gimbal yaw offset calibrated at arming");
+  }
 }
 
 bool DJIMatricePSDKPlatform::ownSetOffboardControl(bool offboard)

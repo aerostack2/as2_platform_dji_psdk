@@ -117,6 +117,7 @@ private:
   as2::SynchronousServiceClient<psdk_interfaces::srv::CameraSetupStreaming>::SharedPtr
     camera_setup_streaming_srv_;
   as2::SynchronousServiceClient<psdk_interfaces::srv::GimbalReset>::SharedPtr gimbal_reset_srv_;
+  as2::SynchronousServiceClient<std_srvs::srv::Trigger>::SharedPtr calibrate_gimbal_yaw_srv_;
 
   // Subscribers callbacks
   void positionFusedCallback(const psdk_interfaces::msg::PositionFused::SharedPtr msg);
@@ -127,6 +128,14 @@ private:
 
   // Utility functions
   bool setControlAuthority(bool state);
+
+  /**
+   * @brief Re-centers the gimbal to its home/forward pose and requests the PSDK
+   * wrapper to calibrate the constant gimbal yaw bias against the current
+   * FC/RTK heading. Intended to be called at arming, when the aircraft is
+   * static, level and (if used) RTK heading has already converged.
+   */
+  void calibrateGimbalYaw();
 };  // class DJIMatricePSDKPlatform
 
 }  // namespace as2_platform_dji_psdk
