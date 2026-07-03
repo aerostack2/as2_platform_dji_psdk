@@ -91,6 +91,9 @@ private:
   // Gimbal
   as2::tf::TfHandler tf_handler_;
   bool enable_gimbal_;
+  // When true, the gimbal yaw offset is auto-calibrated at arming. When false,
+  // the fixed "gimbal_yaw_offset" configured in the PSDK wrapper is used as-is.
+  bool calibrate_gimbal_yaw_{true};
   psdk_interfaces::msg::GimbalRotation gimbal_command_msg_;
   rclcpp::Time last_gimbal_command_time_;
 

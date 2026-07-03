@@ -140,6 +140,14 @@ void DJIMatricePSDKPlatform::configureSensors()
   this->get_parameter("enable_gimbal", enable_gimbal_);
   RCLCPP_INFO(
     this->get_logger(), "Gimbal reset service: %s", enable_gimbal_ ? "enabled" : "disabled");
+
+  // Gimbal yaw calibration mode: true -> auto-calibrate at arming; false -> use
+  // the fixed "gimbal_yaw_offset" configured in the PSDK wrapper.
+  this->declare_parameter<bool>("calibrate_gimbal_yaw", true);
+  this->get_parameter("calibrate_gimbal_yaw", calibrate_gimbal_yaw_);
+  RCLCPP_INFO(
+    this->get_logger(), "Gimbal yaw calibration: %s",
+    calibrate_gimbal_yaw_ ? "auto (at arming)" : "manual (fixed offset)");
   if (enable_gimbal_) {
     auto request = std::make_shared<psdk_interfaces::srv::GimbalReset::Request>();
     request->payload_index = 1;
@@ -174,8 +182,10 @@ bool DJIMatricePSDKPlatform::ownSetArmingState(bool state)
   // On arming the aircraft is static, level and (if used) RTK heading has
   // converged, so this is the right moment to calibrate the constant bias
   // between the gimbal magnetometer yaw and the FC/RTK heading. Only done when
-  // arming (state == true) and the gimbal is enabled.
-  if (state && enable_gimbal_) {
+  // arming (state == true), the gimbal is enabled, and auto-calibration is
+  // selected. When calibrate_gimbal_yaw_ is false, the fixed gimbal_yaw_offset
+  // configured in the wrapper is left untouched.
+  if (state && enable_gimbal_ && calibrate_gimbal_yaw_) {
     calibrateGimbalYaw();
   }
   return success;
