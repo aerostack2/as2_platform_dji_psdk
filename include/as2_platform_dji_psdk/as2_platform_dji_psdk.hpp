@@ -67,17 +67,64 @@ class DJIMatricePSDKPlatform : public as2::AerialPlatform
   using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
 public:
+  /**
+   * @brief Construct the DJI PSDK platform, creating the PSDK interfaces.
+   *
+   * @param options Node options.
+   */
   explicit DJIMatricePSDKPlatform(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   virtual ~DJIMatricePSDKPlatform() = default;
 
+  /**
+   * @brief Create the sensor interfaces the platform publishes.
+   */
   void configureSensors() override;
+  /**
+   * @brief Arm or disarm the vehicle.
+   *
+   * @param state True to arm, false to disarm.
+   * @return true if the vehicle accepted the request.
+   */
   bool ownSetArmingState(bool state) override;
+  /**
+   * @brief Enter or leave offboard control.
+   *
+   * @param offboard True to take control, false to release it.
+   * @return true if the vehicle accepted the request.
+   */
   bool ownSetOffboardControl(bool offboard) override;
+  /**
+   * @brief Accept a control mode requested through the platform interface.
+   *
+   * @param msg Requested control mode.
+   * @return true if the platform accepts the mode.
+   */
   bool ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg) override;
+  /**
+   * @brief Send the current actuator commands to the vehicle.
+   *
+   * @return true if the command was sent.
+   */
   bool ownSendCommand() override;
+  /**
+   * @brief Hold the vehicle in place with a zero setpoint.
+   */
   void ownStopPlatform() override;
+  /**
+   * @brief Stop the motors immediately, without landing.
+   */
   void ownKillSwitch() override;
+  /**
+   * @brief Take off with the platform own takeoff routine.
+   *
+   * @return true if the takeoff finished successfully.
+   */
   bool ownTakeoff() override;
+  /**
+   * @brief Land with the platform own landing routine.
+   *
+   * @return true if the landing finished successfully.
+   */
   bool ownLand() override;
 
 private:
@@ -119,13 +166,44 @@ private:
   as2::SynchronousServiceClient<psdk_interfaces::srv::GimbalReset>::SharedPtr gimbal_reset_srv_;
 
   // Subscribers callbacks
+  /**
+   * @brief Republish the PSDK fused position as the platform odometry pose.
+   *
+   * @param msg Fused position reported by the PSDK.
+   */
   void positionFusedCallback(const psdk_interfaces::msg::PositionFused::SharedPtr msg);
+  /**
+   * @brief Republish the PSDK attitude as the platform IMU orientation.
+   *
+   * @param msg Attitude reported by the PSDK, in FRD.
+   */
   void attitudeCallback(const geometry_msgs::msg::QuaternionStamped::SharedPtr msg);
+  /**
+   * @brief Republish the PSDK linear velocity as the platform odometry twist.
+   *
+   * @param msg Velocity reported by the PSDK, in NED.
+   */
   void velocityCallback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
+  /**
+   * @brief Republish the PSDK angular velocity as the platform IMU rates.
+   *
+   * @param msg Angular velocity reported by the PSDK, in FRD.
+   */
   void angularVelocityCallback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
+  /**
+   * @brief Forward a gimbal reference to the PSDK, when the gimbal is enabled.
+   *
+   * @param msg Gimbal control reference.
+   */
   void gimbalControlCallback(const as2_msgs::msg::GimbalControl::SharedPtr msg);
 
   // Utility functions
+  /**
+   * @brief Request or release control authority over the vehicle.
+   *
+   * @param state True to request it, false to release it.
+   * @return true if the PSDK granted the request.
+   */
   bool setControlAuthority(bool state);
 };  // class DJIMatricePSDKPlatform
 
