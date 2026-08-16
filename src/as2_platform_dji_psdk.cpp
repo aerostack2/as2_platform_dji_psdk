@@ -305,8 +305,8 @@ void DJIMatricePSDKPlatform::positionFusedCallback(
   nav_msgs::msg::Odometry odom_msg;
 
   odom_msg.header.stamp = msg->header.stamp;
-  odom_msg.header.frame_id = as2::tf::generateTfName(this->get_namespace(), "odom");
-  odom_msg.child_frame_id = as2::tf::generateTfName(this->get_namespace(), "base_link");
+  odom_msg.header.frame_id = this->getOdomFrameId();
+  odom_msg.child_frame_id = this->getBaseFrameId();
   odom_msg.pose.pose.position.x = msg->position.x;
   odom_msg.pose.pose.position.y = msg->position.y;
   odom_msg.pose.pose.position.z = msg->position.z;
@@ -391,7 +391,7 @@ void DJIMatricePSDKPlatform::gimbalControlCallback(
   geometry_msgs::msg::QuaternionStamped desired_earth_orientation;
   desired_earth_orientation = desired_base_link_orientation;
 
-  std::string target_frame = "earth";  // Earth frame
+  const std::string & target_frame = this->getEarthFrameId();
   if (!tf_handler_.tryConvert(desired_earth_orientation, target_frame)) {
     RCLCPP_ERROR(
       this->get_logger(), "Could not transform desired gimbal orientation to earth frame");
