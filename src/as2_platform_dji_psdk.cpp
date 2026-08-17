@@ -39,8 +39,7 @@ namespace as2_platform_dji_psdk
 {
 
 DJIMatricePSDKPlatform::DJIMatricePSDKPlatform(const rclcpp::NodeOptions & options)
-: as2::AerialPlatform(options),
-  tf_handler_(this)
+: as2::AerialPlatform(options)
 {
   // Create publishers
   velocity_command_pub_ = this->create_publisher<sensor_msgs::msg::Joy>(
@@ -179,6 +178,11 @@ bool DJIMatricePSDKPlatform::ownSetOffboardControl(bool offboard)
 bool DJIMatricePSDKPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg)
 {
   RCLCPP_INFO(this->get_logger(), "Setting control mode to %d", msg.control_mode);
+
+  // The PSDK velocity setpoints are given in the local ENU frame
+  setCommandPoseFrameId(this->getOdomFrameId());
+  setCommandTwistFrameId(this->getOdomFrameId());
+
   bool success = false;
   auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
   auto response = std::make_shared<std_srvs::srv::Trigger::Response>();
@@ -392,7 +396,7 @@ void DJIMatricePSDKPlatform::gimbalControlCallback(
   desired_earth_orientation = desired_base_link_orientation;
 
   const std::string & target_frame = this->getEarthFrameId();
-  if (!tf_handler_.tryConvert(desired_earth_orientation, target_frame)) {
+  if (!tf_handler_->tryConvert(desired_earth_orientation, target_frame)) {
     RCLCPP_ERROR(
       this->get_logger(), "Could not transform desired gimbal orientation to earth frame");
     return;
