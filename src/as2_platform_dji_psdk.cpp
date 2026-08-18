@@ -112,9 +112,7 @@ void DJIMatricePSDKPlatform::configureSensors()
   RCLCPP_INFO(this->get_logger(), "DJIMatricePSDKPlatform odometry sensor configured");
 
   // Initialize the camera streaming service
-  this->declare_parameter<bool>("enable_camera", false);
-  bool enable_camera;
-  this->get_parameter("enable_camera", enable_camera);
+  const bool enable_camera = this->getParameter<bool>("enable_camera", false);
   RCLCPP_INFO(
     this->get_logger(), "Camera streaming service: %s", enable_camera ? "enabled" : "disabled");
   if (enable_camera) {
@@ -132,8 +130,7 @@ void DJIMatricePSDKPlatform::configureSensors()
   }
 
   // Initialize the gimbal service
-  this->declare_parameter<bool>("enable_gimbal", false);
-  this->get_parameter("enable_gimbal", enable_gimbal_);
+  enable_gimbal_ = this->getParameter<bool>("enable_gimbal", false);
   RCLCPP_INFO(
     this->get_logger(), "Gimbal reset service: %s", enable_gimbal_ ? "enabled" : "disabled");
   if (enable_gimbal_) {
