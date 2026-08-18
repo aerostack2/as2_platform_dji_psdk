@@ -136,7 +136,6 @@ private:
   geometry_msgs::msg::Vector3 current_angular_velocity_;
 
   // Gimbal
-  as2::tf::TfHandler tf_handler_;
   bool enable_gimbal_;
   psdk_interfaces::msg::GimbalRotation gimbal_command_msg_;
   rclcpp::Time last_gimbal_command_time_;
