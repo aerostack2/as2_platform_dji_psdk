@@ -22,7 +22,11 @@
       "usb_bulk2_device_name": "/dev/usb-ffs/bulk2",
       "usb_bulk2_interface_num": "3",
       "usb_bulk2_endpoint_in": "0x84",
-      "usb_bulk2_endpoint_out": "0x03"
+      "usb_bulk2_endpoint_out": "0x03",
+      "usb_bulk3_device_name": "/dev/usb-ffs/bulk3",
+      "usb_bulk3_interface_num": "4",
+      "usb_bulk3_endpoint_in": "0x85",
+      "usb_bulk3_endpoint_out": "0x04"
     }
   }
 }
