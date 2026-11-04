@@ -1,0 +1,59 @@
+[workspace]
+preview = ["pixi-build"]
+authors = ["CVAR-UPM <cvar.upm3@gmail.com>"]
+channels = ["conda-forge"]
+name = "as2_platform_dji_psdk"
+platforms = [
+  { platform = "linux-64", glibc = "2.34" },
+  { platform = "linux-aarch64", glibc = "2.34" },
+  "osx-arm64"
+]
+version = "1.1.0"
+
+# pin: libcxx 23 removed std::wstring_convert, still used by rosidl_runtime_cpp
+# headers. Drop when ROS or conda-forge ships a fix. Mirrors aerostack2's workspace.
+[workspace.target.osx-arm64.build-variants]
+c_compiler_version = ["22"]
+cxx_compiler_version = ["22"]
+
+[dependencies]
+as2_platform_dji_psdk = { path = "." }
+
+[feature.jazzy]
+channels = ["robostack-jazzy"]
+
+[feature.jazzy.dependencies]
+ros-jazzy-ros-base = "*"
+
+# Jazzy only: psdk_interfaces is built from a bare package.xml, so its conda name
+# carries the distro (ros-jazzy-psdk-interfaces) and can't be shared with Humble.
+[environments]
+default = ["jazzy"]
+
+[package]
+name = "as2_platform_dji_psdk"
+version = "1.1.0"
+
+[package.build]
+backend = { name = "pixi-build-ros", version = "0.7.*" }
+
+# Source-built deps: drop the backend's automatic mapping (which would also put them
+# in the build env) and declare them explicitly in host/run below.
+[package.build.config]
+extra-package-mappings = [{
+  as2_core = { conda = [] },
+  as2_msgs = { conda = [] },
+  psdk_interfaces = { conda = [] },
+}]
+
+[package.host-dependencies]
+as2_core = { git = "https://github.com/aerostack2/aerostack2.git", branch = "main", subdirectory = "as2_core" }
+as2_msgs = { git = "https://github.com/aerostack2/aerostack2.git", branch = "main", subdirectory = "as2_msgs" }
+# Not on robostack; built from source. No pixi manifest upstream, so point at package.xml.
+ros-jazzy-psdk-interfaces = { git = "https://github.com/umdlife/psdk_ros2.git", branch = "main", subdirectory = "psdk_interfaces/package.xml" }
+
+[package.run-dependencies]
+as2_core = { git = "https://github.com/aerostack2/aerostack2.git", branch = "main", subdirectory = "as2_core" }
+as2_msgs = { git = "https://github.com/aerostack2/aerostack2.git", branch = "main", subdirectory = "as2_msgs" }
+# Not on robostack; built from source. No pixi manifest upstream, so point at package.xml.
+ros-jazzy-psdk-interfaces = { git = "https://github.com/umdlife/psdk_ros2.git", branch = "main", subdirectory = "psdk_interfaces/package.xml" }
