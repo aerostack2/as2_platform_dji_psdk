@@ -2,7 +2,6 @@
 # name, so both the Jazzy and Humble environments can depend on it.
 [package]
 name = "psdk_interfaces"
-version = "0.0.0"
 
 [package.build]
 backend = { name = "pixi-build-ros", version = "0.7.*" }
