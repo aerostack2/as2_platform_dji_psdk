@@ -63,17 +63,12 @@ backend = { name = "pixi-build-ros", version = "0.7.*" }
 extra-package-mappings = [{
   as2_core = { conda = [] },
   as2_msgs = { conda = [] },
-  psdk_interfaces = { conda = [] },
 }]
 
 [package.host-dependencies]
 as2_core = { git = "https://github.com/aerostack2/aerostack2.git", branch = "main", subdirectory = "as2_core" }
 as2_msgs = { git = "https://github.com/aerostack2/aerostack2.git", branch = "main", subdirectory = "as2_msgs" }
-# Not on robostack; built from source through a local manifest (see pixi/psdk_interfaces).
-psdk_interfaces = { path = "pixi/psdk_interfaces" }
 
 [package.run-dependencies]
 as2_core = { git = "https://github.com/aerostack2/aerostack2.git", branch = "main", subdirectory = "as2_core" }
 as2_msgs = { git = "https://github.com/aerostack2/aerostack2.git", branch = "main", subdirectory = "as2_msgs" }
-# Not on robostack; built from source through a local manifest (see pixi/psdk_interfaces).
-psdk_interfaces = { path = "pixi/psdk_interfaces" }

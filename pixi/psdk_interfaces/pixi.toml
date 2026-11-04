@@ -1,8 +1,0 @@
-# psdk_interfaces has no pixi manifest upstream. This one gives it a distro-independent
-# name, so both the Jazzy and Humble environments can depend on it.
-[package]
-name = "psdk_interfaces"
-
-[package.build]
-backend = { name = "pixi-build-ros", version = "0.7.*" }
-source = { git = "https://github.com/umdlife/psdk_ros2.git", branch = "main", subdirectory = "psdk_interfaces" }
