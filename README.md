@@ -18,6 +18,11 @@ and services.
 > For older drones that only support the deprecated Onboard SDK, such as the Matrice 210 V2, use
 > [`as2_platform_dji_osdk`](https://github.com/aerostack2/as2_platform_dji_osdk).
 
+> [!IMPORTANT]
+> This package can't be released to the ROS build farm or listed on the ROS Index yet, because its
+> `psdk_interfaces` dependency isn't released for any ROS 2 distribution newer than Humble. Building
+> it from source, together with [`psdk_ros2`](https://github.com/umdlife/psdk_ros2), works.
+
 ## Requirements
 
 - Ubuntu 22.04 with [ROS 2 Humble](https://docs.ros.org/en/humble/Installation.html)
