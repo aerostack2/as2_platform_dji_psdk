@@ -25,10 +25,30 @@ channels = ["robostack-jazzy"]
 [feature.jazzy.dependencies]
 ros-jazzy-ros-base = "*"
 
-# Jazzy only: psdk_interfaces is built from a bare package.xml, so its conda name
-# carries the distro (ros-jazzy-psdk-interfaces) and can't be shared with Humble.
+[feature.humble]
+channels = ["robostack-humble"]
+
+[feature.humble.dependencies]
+ros-humble-ros-base = "*"
+
+[feature.lint]
+channels = ["robostack-humble", "conda-forge"]
+
+[feature.lint.dependencies]
+commitlint = { version = ">=21.2", channel = "conda-forge" }
+lefthook = ">=2.2"
+# Humble's apt uncrustify_vendor ships 0.72; newer releases format differently.
+uncrustify = { version = "0.72.*", channel = "conda-forge" }
+ros-humble-ament-uncrustify = "*"
+ros-humble-ament-cpplint = "*"
+ros-humble-ament-flake8 = "*"
+ros-humble-ament-pep257 = "*"
+ros-humble-ament-xmllint = "*"
+
 [environments]
 default = ["jazzy"]
+humble = ["humble"]
+lint = { features = ["lint"], no-default-feature = true }
 
 [package]
 name = "as2_platform_dji_psdk"
@@ -49,11 +69,11 @@ extra-package-mappings = [{
 [package.host-dependencies]
 as2_core = { git = "https://github.com/aerostack2/aerostack2.git", branch = "main", subdirectory = "as2_core" }
 as2_msgs = { git = "https://github.com/aerostack2/aerostack2.git", branch = "main", subdirectory = "as2_msgs" }
-# Not on robostack; built from source. No pixi manifest upstream, so point at package.xml.
-ros-jazzy-psdk-interfaces = { git = "https://github.com/umdlife/psdk_ros2.git", branch = "main", subdirectory = "psdk_interfaces/package.xml" }
+# Not on robostack; built from source through a local manifest (see pixi/psdk_interfaces).
+psdk_interfaces = { path = "pixi/psdk_interfaces" }
 
 [package.run-dependencies]
 as2_core = { git = "https://github.com/aerostack2/aerostack2.git", branch = "main", subdirectory = "as2_core" }
 as2_msgs = { git = "https://github.com/aerostack2/aerostack2.git", branch = "main", subdirectory = "as2_msgs" }
-# Not on robostack; built from source. No pixi manifest upstream, so point at package.xml.
-ros-jazzy-psdk-interfaces = { git = "https://github.com/umdlife/psdk_ros2.git", branch = "main", subdirectory = "psdk_interfaces/package.xml" }
+# Not on robostack; built from source through a local manifest (see pixi/psdk_interfaces).
+psdk_interfaces = { path = "pixi/psdk_interfaces" }
