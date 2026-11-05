@@ -1,0 +1,74 @@
+[workspace]
+preview = ["pixi-build"]
+authors = ["CVAR-UPM <cvar.upm3@gmail.com>"]
+channels = ["conda-forge"]
+name = "as2_platform_dji_psdk"
+platforms = [
+  { platform = "linux-64", glibc = "2.34" },
+  { platform = "linux-aarch64", glibc = "2.34" },
+  { platform = "osx-arm64", macos = "14.0" }
+]
+version = "1.1.0"
+
+# pin: libcxx 23 removed std::wstring_convert, still used by rosidl_runtime_cpp
+# headers. Drop when ROS or conda-forge ships a fix. Mirrors aerostack2's workspace.
+[workspace.target.osx-arm64.build-variants]
+c_compiler_version = ["22"]
+cxx_compiler_version = ["22"]
+
+[dependencies]
+as2_platform_dji_psdk = { path = "." }
+
+[feature.jazzy]
+channels = ["robostack-jazzy"]
+
+[feature.jazzy.dependencies]
+ros-jazzy-ros-base = "*"
+
+[feature.humble]
+channels = ["robostack-humble"]
+
+[feature.humble.dependencies]
+ros-humble-ros-base = "*"
+
+[feature.lint]
+channels = ["robostack-humble", "conda-forge"]
+
+[feature.lint.dependencies]
+commitlint = { version = ">=21.2", channel = "conda-forge" }
+lefthook = ">=2.2"
+# Humble's apt uncrustify_vendor ships 0.72; newer releases format differently.
+uncrustify = { version = "0.72.*", channel = "conda-forge" }
+ros-humble-ament-uncrustify = "*"
+ros-humble-ament-cpplint = "*"
+ros-humble-ament-flake8 = "*"
+ros-humble-ament-pep257 = "*"
+ros-humble-ament-xmllint = "*"
+
+[environments]
+default = ["jazzy"]
+humble = ["humble"]
+lint = { features = ["lint"], no-default-feature = true }
+
+[package]
+name = "as2_platform_dji_psdk"
+version = "1.1.0"
+
+[package.build]
+backend = { name = "pixi-build-ros", version = "0.7.*" }
+
+# Source-built deps: drop the backend's automatic mapping (which would also put them
+# in the build env) and declare them explicitly in host/run below.
+[package.build.config]
+extra-package-mappings = [{
+  as2_core = { conda = [] },
+  as2_msgs = { conda = [] },
+}]
+
+[package.host-dependencies]
+as2_core = { git = "https://github.com/aerostack2/aerostack2.git", branch = "main", subdirectory = "as2_core" }
+as2_msgs = { git = "https://github.com/aerostack2/aerostack2.git", branch = "main", subdirectory = "as2_msgs" }
+
+[package.run-dependencies]
+as2_core = { git = "https://github.com/aerostack2/aerostack2.git", branch = "main", subdirectory = "as2_core" }
+as2_msgs = { git = "https://github.com/aerostack2/aerostack2.git", branch = "main", subdirectory = "as2_msgs" }
