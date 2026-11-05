@@ -6,7 +6,7 @@ name = "as2_platform_dji_psdk"
 platforms = [
   { platform = "linux-64", glibc = "2.34" },
   { platform = "linux-aarch64", glibc = "2.34" },
-  "osx-arm64"
+  { platform = "osx-arm64", macos = "14.0" }
 ]
 version = "1.1.0"
 
