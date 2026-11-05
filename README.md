@@ -1,6 +1,6 @@
 # as2_platform_dji_psdk
 
-[![build](https://github.com/aerostack2/as2_platform_dji_psdk/actions/workflows/build_humble.yaml/badge.svg)](https://github.com/aerostack2/as2_platform_dji_psdk/actions/workflows/build_humble.yaml)
+[![build](https://github.com/aerostack2/as2_platform_dji_psdk/actions/workflows/build.yaml/badge.svg)](https://github.com/aerostack2/as2_platform_dji_psdk/actions/workflows/build_humble.yaml)
 [![ROS 2 Humble](https://img.shields.io/badge/ROS_2-Humble-22314E?logo=ros)](https://docs.ros.org/en/humble/)
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
 [![arXiv](https://img.shields.io/badge/arXiv-2303.18237-b31b1b.svg)](https://arxiv.org/abs/2303.18237)
